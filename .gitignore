@@ -47,3 +47,8 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# PDF and Power Point shouldn't be stored here
+.pdf
+.ppt
+.pptx
