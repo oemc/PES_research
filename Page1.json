@@ -1,0 +1,812 @@
+[
+    {
+      "page": 1,
+      "pages": 39,
+      "per_page": 50,
+      "total": 1925,
+      "sourceid": "2",
+      "lastupdated": "2024-06-28"
+    },
+    [
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2019",
+        "value": 21.6815864776845,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2018",
+        "value": 20.7302035956455,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2017",
+        "value": 20.1022374649661,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2016",
+        "value": 22.1760456773052,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2015",
+        "value": 22.2043694905934,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2014",
+        "value": 24.0420670948875,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2013",
+        "value": 25.4958180568652,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2012",
+        "value": 33.3985404068484,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2011",
+        "value": 37.9368214027482,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2010",
+        "value": 39.2509638275722,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2009",
+        "value": 46.5857264025192,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2008",
+        "value": 45.9613121742767,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2007",
+        "value": 45.9656218508934,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2006",
+        "value": 40.7841916938153,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2005",
+        "value": 44.8245479239878,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2004",
+        "value": 42.8700538118862,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2003",
+        "value": 33.5710253665299,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2002",
+        "value": 31.4733674469171,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2001",
+        "value": 14.5292447763473,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "2000",
+        "value": 3.987223282214,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "1999",
+        "value": null,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "1998",
+        "value": null,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "1997",
+        "value": null,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "1996",
+        "value": null,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AF",
+          "value": "Afghanistan"
+        },
+        "countryiso3code": "AFG",
+        "date": "1995",
+        "value": null,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2019",
+        "value": 0.0324400646670134,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2018",
+        "value": 0.221842985808508,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2017",
+        "value": 0.322637414527647,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2016",
+        "value": 0.412936929534345,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2015",
+        "value": 0.442468474240892,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2014",
+        "value": 0.184317773276652,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2013",
+        "value": 0.232608601301915,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2012",
+        "value": 0.207096483928743,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2011",
+        "value": 0.188985627520987,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2010",
+        "value": 0.310608749886629,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2009",
+        "value": 0.34433844264551,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2008",
+        "value": 0.463224833511575,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2007",
+        "value": 0.381342055919312,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2006",
+        "value": 0.35391521413902,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2005",
+        "value": 1.25889447121839,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2004",
+        "value": 5.43390354886861,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2003",
+        "value": 3.06784246965615,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2002",
+        "value": 3.03297877303975,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2001",
+        "value": 3.83358093167613,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "2000",
+        "value": 4.05719889252888,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "1999",
+        "value": 8.10601681630214,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "1998",
+        "value": 6.05443162708982,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "1997",
+        "value": 5.25078207743941,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "1996",
+        "value": 9.07350929374038,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      },
+      {
+        "indicator": {
+          "id": "DT.ODA.ODAT.GN.ZS",
+          "value": "Net ODA received (% of GNI)"
+        },
+        "country": {
+          "id": "AO",
+          "value": "Angola"
+        },
+        "countryiso3code": "AGO",
+        "date": "1995",
+        "value": 8.72739446632538,
+        "unit": "",
+        "obs_status": "",
+        "decimal": 1
+      }
+    ]
+  ]

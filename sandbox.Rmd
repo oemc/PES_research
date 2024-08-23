@@ -1,0 +1,33 @@
+---
+title: "data sandbox"
+output: html_document
+date: "2024-07-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Tratando de ver que datos tengo
+
+```{r world development indicators}
+colnames(wdi) <- c("C_Name","C_Code","S_Name","S_Code","YR1995","YR1996","YR1997","YR1998", "YR1999","YR2000","YR2001","YR2002","YR2003","YR2004","YR2005","YR2006","YR2007","YR2008","YR2009","YR2010","YR2011","YR2012","YR2013","YR2014","YR2015","YR2016","YR2017","YR2018","YR2019","YR2020","YR2021","YR2022","YR2023")
+```
+
+```{r}
+wdi %>% 
+  filter(C_Code == "AFG") %>%
+  select()
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

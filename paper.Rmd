@@ -1,0 +1,334 @@
+---
+title: "Official Development Assistance and Institutional Quality on Undeveloped countries"
+output:
+  pdf_document: default
+  html_notebook: default
+date: "2024-08-05"
+author: "Oscar Eduardo Morales Cárdenas"
+---
+
+
+International aid may take the form of multilateral aid – provided through international bodies such as the UN, or NGOs such as Oxfam – or bilateral aid, which operates on a government-to-government basis. There is considerable debate about whether international aid works, in the sense of reducing poverty and stimulating development.
+
+However, the effectiveness of aid is often diluted by corruption. Aid is invariably channeled through the governments of recipient countries, in which power is often concentrated in the hands of a few politicians and bureaucrats, and the mechanisms of accountability are, at best, poorly developed. This tends to benefit corrupt leaders and elites rather than the people, projects and programs for which it was intended.
+
+\begin{flushright}
+Watts, Carl. (2014). Re: Does foreign aid help the developing countries towards development?. Retrieved from: $https://www.researchgate.net/post/Does_foreign_aid_help_the_developing_countries_towards_development/5322005ed039b1e7648b459c/citation/download.$
+\end{flushright}
+
+
+The hypothesis that foreign aid can promote growth in developing countries was explored, using panel data series for foreign aid, while accounting for regional differences in Asian, African, Latin American, and the Caribbean countries as well as the differences in income levels, the results of this study also indicate that foreign aid has mixed effects on economic growth in developing countries.
+
+\begin{flushright}
+Ekanayake, E. & Chatrna, Dasha. (2010). The effect of foreign aid on economic growth in developing countries. Journal of International Business and Cultural Studies. 3.
+\end{flushright}
+
+
+This study examines the relationships between foreign aid, institutional structure, and economic performance for 80 countries in Europe, America, Africa, and Asia. It is found that official development assistance and the quality of institutional structure in the sample countries affect economic growth positively.
+
+\begin{flushright}
+Hayaloğlu, Pınar. (2023). Foreign Aid, Institutions, and Economic Performance in Developing Countries. Eskişehir Osmangazi Üniversitesi İktisadi ve İdari Bilimler Dergisi. 18. 748-765. 10.17153/oguiibf.1277348. 
+\end{flushright}
+
+# Loading libraries
+
+Some libraries and packages used for data manipulation and data scrapping
+
+```{r}
+library(tidyverse) # i don't think I´ll use this /r
+library(WDI)       # for World Bank data acceding (mostly country code names)
+library(readxl)    # for excel files reading
+library(readr)     # for csv files reading
+library(visdat)    # for data visualization
+library(plotly)    # for plots
+library(purrr)     # for map funciton
+```
+
+# Gathering Data
+
+Data for low income countries will be used, as categorized by the World Bank there are 26 Low income countries and 51 Lower middle income countries
+
+```{r}
+country_class <- read_excel("CLASS.xlsx")
+
+country_class %>%
+  filter(!is.na(Region), !is.na(`Income group`)) %>%
+  group_by(`Income group`) %>%
+  summarise(countries = n())
+```
+
+Here are listed countries to use:
+
+```{r}
+my_countries <- country_class %>%
+  filter(!is.na(Region), `Income group` %in% c('Low income', 'Lower middle income')) %>%
+  select(Code)
+```
+
+Here we get the respective iso2c names
+
+```{r}
+my_countries$iso2c <- WDI_data$country %>%
+  filter(iso3c %in% my_countries$Code) %>%
+  .$iso2c
+```
+
+Data from the World Bank API and the Human Development Reports API is dowloaded by the usage of Python Scripts.
+They are stored as csv files and then loaded here:
+
+## HDI
+
+```{r}
+datos_HDI <- read_csv("datos_python_HDI.csv", col_names = c('Code', 'iso2c', 'indicator', 'year', 'value'), 
+                      col_types = list(col_character(), col_character(), col_character(), col_double(), col_double()))
+
+hdi_indicators <- datos_HDI %>% distinct(indicator) %>% .$indicator
+```
+
+## ODA
+
+```{r}
+oda_indicators <- c(
+'DT_ODA_ALLD_CD',
+'DT_ODA_ALLD_KD',
+'DT_ODA_OATL_CD',
+'DT_ODA_OATL_KD',
+'DT_ODA_ODAT_CD',
+'DT_ODA_ODAT_GI_ZS',
+'DT_ODA_ODAT_GN_ZS',
+'DT_ODA_ODAT_KD',
+'DT_ODA_ODAT_MP_ZS',
+'DT_ODA_ODAT_PC_ZS',
+'DT_ODA_ODAT_XP_ZS'
+)
+gob_indicators <- c(
+'CC_EST',
+'CC_NO_SRC',
+'CC_PER_RNK',
+'CC_PER_RNK_LOWER',
+'CC_PER_RNK_UPPER',
+'CC_STD_ERR',
+'GE_EST',
+'GE_NO_SRC',
+'GE_PER_RNK',
+'GE_PER_RNK_LOWER',
+'GE_PER_RNK_UPPER',
+'GE_STD_ERR',
+'PV_EST',
+'PV_NO_SRC',
+'PV_PER_RNK',
+'PV_PER_RNK_LOWER',
+'PV_PER_RNK_UPPER',
+'PV_STD_ERR',
+'RQ_EST',
+'RQ_NO_SRC',
+'RQ_PER_RNK',
+'RQ_PER_RNK_LOWER',
+'RQ_PER_RNK_UPPER',
+'RQ_STD_ERR',
+'RL_EST')
+
+datos_WB <- data.frame(indicator = character(), iso2c = character(), year = double(), value = double())
+
+suppressWarnings(
+  for (indicator in c(oda_indicators, gob_indicators)) {
+    datos_WB <- rbind(datos_WB, read_csv(paste("datos_python", indicator, ".csv", sep =''), 
+                                           col_names = c('indicator', 'iso2c', 'year', 'value'),
+                                           col_types = list(col_character(), col_character(), col_double(), col_double())))
+  }
+)
+```
+
+# Data Manipulation
+
+Transform the data into a new structure for easier understanding
+
+```{r}
+datos_paper <- rbind(datos_WB, datos_HDI %>% select(indicator, iso2c, year, value)) %>%
+  pivot_wider(names_from = indicator, values_from = value)
+```
+
+Lets check which data is missing...
+
+```{r}
+vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
+  # DT.ODA.OATL.CD and DT.ODA.OATL.KD missing for all countries and years
+  # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS also has some missing values
+  # There is a couple of countries that has some missing values for some exact years
+```
+```{r}
+vis_dat(datos_paper %>% arrange(year) %>%
+          select(all_of(gsub("_", ".", gob_indicators)))) 
+  # It seems that some years are missing here, should we take from (almost) the half and upward? 
+```
+```{r}
+vis_dat(datos_paper %>%
+          select(all_of(hdi_indicators))) 
+  # abr, co2_prod, le, le_f, le_m, mmr seems like has all the years, but... doesn't hdi? 
+```
+
+```{r}
+vis_dat(datos_paper %>% arrange(year) %>% select(hdi)) 
+  # hdi missing in various countries and years... what do we do?
+```
+Taking into account the missing data let´s select a smaller sample to test
+```{r}
+datos_paper %>% filter(is.na(DT.ODA.ALLD.CD)) ## Culprit is SS (South Sudan) and ZW (Zimbabwe) they have almost no ODA and
+                                              ## GOB indicators
+datos_paper %>% filter(!iso2c %in% c('SS', 'ZW')) %>% filter(is.na(CC.EST)) %>% group_by(year) %>% summarise(times = n())
+  # it seems that 1995, 1997, 1999 and 2001 didn't measure governance indicators at all
+  # 1996, 1998, 2000, 2002 and 2003 has some missing countries, it seems lets take a look
+datos_paper %>% arrange(year) %>% filter(!iso2c %in% c('SS', 'ZW'), !year %in% c(1995, 1997, 1999, 2001)) %>%
+                filter(is.na(CC.EST)) # FM (Micronesia), KI (Kiribati) and TL (Timor-Leste) didnt have GOB in those years
+                                      # also CV (Cabo Verde) and SB (Solomon Islands) didn't register some GOB in 2000 - 03
+```
+Now lets view data again with those filters
+```{r}
+datos_paper %>% 
+          arrange(iso2c) %>% 
+          filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL'), 
+                 !year %in% c(1995, 1996, 1997, 1998, 1999, 2001)) %>%
+          select(iso2c, year, hdi,
+                 all_of(gsub("_", ".", gob_indicators))
+                 ) %>%
+         filter(is.na(GE.EST)) #%>%
+         # group_by(year) %>%
+         # summarise(times = n()) 
+# 1996 and 1998 are troublesome, so lets start in 2000
+# BT (Bhutan), ER (Eritrea), GW (Guinea-Bissau), KP (North Korea), LB (Lebanon), NG (Nigeria), PS (Palestine), SO (Somalia),
+# VU (Vanuatu) are the countries without hdi
+```
+
+```{r}
+vis_dat(datos_paper %>% 
+        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
+               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001)) %>%
+        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS,
+               all_of(gsub("_", ".", gob_indicators))
+               ))
+```
+From 1925 to 1098 rows huh... i don't know...
+```{r}
+datos_model <- datos_paper %>% 
+        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
+               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001)) %>%
+        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS,
+               all_of(gsub("_", ".", gob_indicators))
+               )
+```
+
+Let's give it a shot with a linear model
+```{r}
+model <- lm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model)
+summary(model)
+```
+It worked!!!
+but I just threw random variables in there, I want to see their relationship with HID
+
+#Data visualization
+
+```{r}
+my_plot  <- list()
+
+for (col in colnames(datos_model)[4:33]) {
+  my_plot[[col]] <- plot_ly(x = datos_model[[col]], y = datos_model[[3]],
+                            type = 'scatter', mode = 'markers', name = paste(col, "vs HDI"))  
+}
+
+
+subplot(my_plot[1:5], nrows = 2, margin = 0.05) %>% layout(title = 'ODA vs HDI')
+
+```
+
+```{r}
+subplot(my_plot[6:11], nrows = 2, margin = 0.05) %>% layout(title = 'CC vs HDI')
+```
+
+```{r}
+subplot(my_plot[12:17], nrows = 2, margin = 0.05) %>% layout(title = 'GE vs HDI')
+```
+
+
+```{r}
+subplot(my_plot[18:23], nrows = 2, margin = 0.05) %>% layout(title = 'PV vs HDI')
+```
+
+```{r}
+subplot(my_plot[24:29], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HDI')
+```
+
+```{r}
+subplot(my_plot[30], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI')
+```
+
+... what was that???
+I guess I cant just throw things in there and expect to have a good model, I can't see a clear relationship between this stuff, more than better governance indicators are usually accompanied with better HDI scores.
+But... I was saying that I wanted to find a relationship with HDI changes, not the actual HDI score. So, I'll compute a HDI change per year per country, (and lose 61 rows in the process, yay...)
+
+# Data manipulation 2 Electric boogaloo
+
+Note: originally I was excluding data from 2001, because some countries didn't have governance indicators for that year particularly, but!, since I'll lose one year by computing the growth in hdi I can still use this year and wont loose data al all. STONKS!!!
+
+```{r}
+datos_model_2 <- datos_paper %>% 
+        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
+               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000)) %>%
+        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS,
+               all_of(gsub("_", ".", gob_indicators))
+               )
+
+vis_dat(datos_model_2)
+```
+
+```{r}
+datos_model_3 <- datos_model_2 %>%
+  arrange(iso2c, year) %>%
+  mutate(hdi_diff = hdi - lag(hdi)) %>%
+  filter(!year %in% c(2001))
+
+datos_model_3 %>% select(iso2c, year, hdi, hdi_diff)
+
+vis_dat(datos_model_3)
+```
+and here we go again
+```{r}
+my_plot_3  <- list()
+
+for (col in colnames(datos_model_3)[4:33]) {
+  my_plot_3[[col]] <- plot_ly(x = datos_model_3[[col]], y = datos_model_3[[34]],
+                            type = 'scatter', mode = 'markers', name = paste(col, "vs HDI diff"))  
+}
+
+
+subplot(my_plot_3[1:5], nrows = 2, margin = 0.05) %>% layout(title = 'ODA vs HDI')
+```
+
+```{r}
+subplot(my_plot_3[6:11], nrows = 2, margin = 0.05) %>% layout(title = 'CC vs HDI diff')
+```
+```{r}
+subplot(my_plot_3[12:17], nrows = 2, margin = 0.05) %>% layout(title = 'GE vs HDI diff')
+```
+
+```{r}
+subplot(my_plot_3[18:23], nrows = 2, margin = 0.05) %>% layout(title = 'PV vs HDI diff')
+```
+
+```{r}
+subplot(my_plot_3[24:29], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HDI diff')
+```
+
+```{r}
+subplot(my_plot_3[30], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI diff')
+```
+
+Testing model while using hdi_diff as dependent variable (it went better than expected)
+```{r}
+model_3 <- lm(hdi_diff ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model_3)
+summary(model_3)
+```
+I liked the relationship visible in the PER.RNK gov indicators, let's try a model with those variables (it went worse than expected)
+```{r}
+model_4 <- lm(hdi_diff ~ DT.ODA.ALLD.CD + CC.PER.RNK + GE.PER.RNK + PV.PER.RNK + RQ.PER.RNK + RL.EST, data=datos_model_3)
+summary(model_4)
+```
