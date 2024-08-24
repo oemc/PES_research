@@ -1,10 +1,12 @@
 ---
 title: "Official Development Assistance and Institutional Quality on Undeveloped countries"
-output:
-  pdf_document: default
-  html_notebook: default
-date: "2024-08-05"
 author: "Oscar Eduardo Morales Cárdenas"
+date: "2024-08-05"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
 
 
@@ -12,41 +14,35 @@ International aid may take the form of multilateral aid – provided through int
 
 However, the effectiveness of aid is often diluted by corruption. Aid is invariably channeled through the governments of recipient countries, in which power is often concentrated in the hands of a few politicians and bureaucrats, and the mechanisms of accountability are, at best, poorly developed. This tends to benefit corrupt leaders and elites rather than the people, projects and programs for which it was intended.
 
-\begin{flushright}
-Watts, Carl. (2014). Re: Does foreign aid help the developing countries towards development?. Retrieved from: $https://www.researchgate.net/post/Does_foreign_aid_help_the_developing_countries_towards_development/5322005ed039b1e7648b459c/citation/download.$
-\end{flushright}
+\textbf{Watts, Carl. (2014). Re: Does foreign aid help the developing countries towards development?. Retrieved from: $https://www.researchgate.net/post/Does_foreign_aid_help_the_developing_countries_towards_development/5322005ed039b1e7648b459c/citation/download.$}
 
 
 The hypothesis that foreign aid can promote growth in developing countries was explored, using panel data series for foreign aid, while accounting for regional differences in Asian, African, Latin American, and the Caribbean countries as well as the differences in income levels, the results of this study also indicate that foreign aid has mixed effects on economic growth in developing countries.
 
-\begin{flushright}
-Ekanayake, E. & Chatrna, Dasha. (2010). The effect of foreign aid on economic growth in developing countries. Journal of International Business and Cultural Studies. 3.
-\end{flushright}
+\textbf{Ekanayake, E. & Chatrna, Dasha. (2010). The effect of foreign aid on economic growth in developing countries. Journal of International Business and Cultural Studies. 3.}
 
 
 This study examines the relationships between foreign aid, institutional structure, and economic performance for 80 countries in Europe, America, Africa, and Asia. It is found that official development assistance and the quality of institutional structure in the sample countries affect economic growth positively.
 
-\begin{flushright}
-Hayaloğlu, Pınar. (2023). Foreign Aid, Institutions, and Economic Performance in Developing Countries. Eskişehir Osmangazi Üniversitesi İktisadi ve İdari Bilimler Dergisi. 18. 748-765. 10.17153/oguiibf.1277348. 
-\end{flushright}
+\textbf{Hayaloğlu, Pınar. (2023). Foreign Aid, Institutions, and Economic Performance in Developing Countries. Eskişehir Osmangazi Üniversitesi İktisadi ve İdari Bilimler Dergisi. 18. 748-765. 10.17153/oguiibf.1277348.}
 
-# Loading libraries
+# Cargando Librerias
 
-Some libraries and packages used for data manipulation and data scrapping
+Algunas librerias y paquetes usados para obtener y descargar los datos
 
 ```{r}
-library(tidyverse) # i don't think I´ll use this /r
-library(WDI)       # for World Bank data acceding (mostly country code names)
-library(readxl)    # for excel files reading
-library(readr)     # for csv files reading
-library(visdat)    # for data visualization
-library(plotly)    # for plots
-library(purrr)     # for map funciton
+library(tidyverse) # manejo de dataframes
+library(WDI)       # libreria para acceder a metadata de banco mundial
+library(readxl)    # leer archivos de excel
+library(readr)     # leer archivos csv
+library(visdat)    # visualizacion de datos como graficos
+library(plotly)    # graficos
+library(purrr)     # funcion map
 ```
 
-# Gathering Data
+# Obtener datos
 
-Data for low income countries will be used, as categorized by the World Bank there are 26 Low income countries and 51 Lower middle income countries
+Datos para paises bajos ingresos sean utilizados, segun clasificación del banco mundial, hay 26 paises de bajos ingresos y 51 de ingresos medios bajos
 
 ```{r}
 country_class <- read_excel("CLASS.xlsx")
@@ -57,24 +53,26 @@ country_class %>%
   summarise(countries = n())
 ```
 
-Here are listed countries to use:
+Listado de paises a analisar:
 
 ```{r}
 my_countries <- country_class %>%
   filter(!is.na(Region), `Income group` %in% c('Low income', 'Lower middle income')) %>%
   select(Code)
+my_countries
 ```
 
-Here we get the respective iso2c names
+Hacer la respectiva asociacion de nombres iso3c e iso2c
 
 ```{r}
 my_countries$iso2c <- WDI_data$country %>%
   filter(iso3c %in% my_countries$Code) %>%
   .$iso2c
+my_countries
 ```
 
-Data from the World Bank API and the Human Development Reports API is dowloaded by the usage of Python Scripts.
-They are stored as csv files and then loaded here:
+Datos del banco mundial (para ODA y los indices de gobernanza) y el Human Development Reports API son descargados desde scripts de Python.
+Son almacenados en archivos CSV y luego son cargados aqui:
 
 ## HDI
 
@@ -139,64 +137,64 @@ suppressWarnings(
 )
 ```
 
-# Data Manipulation
+# Manipulacion de Datos
 
-Transform the data into a new structure for easier understanding
+Transformar la estructura de los datos para una mejor comprension
 
 ```{r}
 datos_paper <- rbind(datos_WB, datos_HDI %>% select(indicator, iso2c, year, value)) %>%
   pivot_wider(names_from = indicator, values_from = value)
 ```
 
-Lets check which data is missing...
+Revisar que datos estan como faltantes
 
 ```{r}
 vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
-  # DT.ODA.OATL.CD and DT.ODA.OATL.KD missing for all countries and years
-  # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS also has some missing values
-  # There is a couple of countries that has some missing values for some exact years
+  # DT.ODA.OATL.CD and DT.ODA.OATL.KD faltan
+  # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS tienen faltas
+  # Un par de ocurrencias pais-año que faltan datos
 ```
+
 ```{r}
 vis_dat(datos_paper %>% arrange(year) %>%
           select(all_of(gsub("_", ".", gob_indicators)))) 
-  # It seems that some years are missing here, should we take from (almost) the half and upward? 
+  # Datos del 2000 para atras tienen espacios faltantes 
 ```
+
 ```{r}
 vis_dat(datos_paper %>%
           select(all_of(hdi_indicators))) 
-  # abr, co2_prod, le, le_f, le_m, mmr seems like has all the years, but... doesn't hdi? 
+  # abr, co2_prod, le, le_f, le_m, mmr son las pocas categorias sin datos faltantes
 ```
 
 ```{r}
 vis_dat(datos_paper %>% arrange(year) %>% select(hdi)) 
-  # hdi missing in various countries and years... what do we do?
+  # hdi faltante en multiples ocaciones
 ```
-Taking into account the missing data let´s select a smaller sample to test
+
+Tomando en cuenta los datos faltantes, hacer filtros para seleccionar una muestra mas pequeña
 ```{r}
-datos_paper %>% filter(is.na(DT.ODA.ALLD.CD)) ## Culprit is SS (South Sudan) and ZW (Zimbabwe) they have almost no ODA and
-                                              ## GOB indicators
+datos_paper %>% filter(is.na(DT.ODA.ALLD.CD)) ## SS (South Sudan) y ZW (Zimbabwe) faltantes de ODA y GOB indicators
+
 datos_paper %>% filter(!iso2c %in% c('SS', 'ZW')) %>% filter(is.na(CC.EST)) %>% group_by(year) %>% summarise(times = n())
-  # it seems that 1995, 1997, 1999 and 2001 didn't measure governance indicators at all
-  # 1996, 1998, 2000, 2002 and 2003 has some missing countries, it seems lets take a look
+  # para años 1995, 1997, 1999 y 2001 no hay registros de GOB
+  # 1996, 1998, 2000, 2002 and 2003 tiene algunos paises sin datos
 datos_paper %>% arrange(year) %>% filter(!iso2c %in% c('SS', 'ZW'), !year %in% c(1995, 1997, 1999, 2001)) %>%
-                filter(is.na(CC.EST)) # FM (Micronesia), KI (Kiribati) and TL (Timor-Leste) didnt have GOB in those years
-                                      # also CV (Cabo Verde) and SB (Solomon Islands) didn't register some GOB in 2000 - 03
+                filter(is.na(CC.EST)) # FM (Micronesia), KI (Kiribati) y TL (Timor-Leste) no tiene GOB in en estos años 
+                                      # tambien CV (Cabo Verde) and SB (Solomon Islands) no registro GOB en 2000 - 2003
 ```
-Now lets view data again with those filters
+Ver datos aplicando los filtros determinados en las busquedas pasadas
+antes del 2001 suele tener informacion faltante
+BT (Bhutan), ER (Eritrea), GW (Guinea-Bissau), KP (North Korea), LB (Lebanon), NG (Nigeria), PS (Palestine), SO (Somalia), VU (Vanuatu) son paises sin registro de hdi
 ```{r}
 datos_paper %>% 
           arrange(iso2c) %>% 
-          filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL'), 
-                 !year %in% c(1995, 1996, 1997, 1998, 1999, 2001)) %>%
+          filter(!iso2c %in% c('SS','ZW','BT','ER','GW','KP','LB','NG','PS','SO','VU','FM','KI','TL','CB','CV','SB'), 
+                 !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001)) %>%
           select(iso2c, year, hdi,
                  all_of(gsub("_", ".", gob_indicators))
-                 ) %>%
-         filter(is.na(GE.EST)) #%>%
-         # group_by(year) %>%
-         # summarise(times = n()) 
-# 1996 and 1998 are troublesome, so lets start in 2000
-# BT (Bhutan), ER (Eritrea), GW (Guinea-Bissau), KP (North Korea), LB (Lebanon), NG (Nigeria), PS (Palestine), SO (Somalia),
-# VU (Vanuatu) are the countries without hdi
+                 )
+
 ```
 
 ```{r}
@@ -207,7 +205,7 @@ vis_dat(datos_paper %>%
                all_of(gsub("_", ".", gob_indicators))
                ))
 ```
-From 1925 to 1098 rows huh... i don't know...
+De 1925 observaciones reducimos a 1098
 ```{r}
 datos_model <- datos_paper %>% 
         filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
@@ -217,15 +215,16 @@ datos_model <- datos_paper %>%
                )
 ```
 
-Let's give it a shot with a linear model
+Probando un modelo sencillo Minimos cuadrados
 ```{r}
 model <- lm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model)
 summary(model)
 ```
-It worked!!!
-but I just threw random variables in there, I want to see their relationship with HID
+Todas las variables son significativas al 95% excepto ODA
 
-#Data visualization
+Se revisara las relaciones entre las variables graficamente
+
+#Visualizacion de datos
 
 ```{r}
 my_plot  <- list()
@@ -261,13 +260,12 @@ subplot(my_plot[24:29], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HDI'
 subplot(my_plot[30], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI')
 ```
 
-... what was that???
-I guess I cant just throw things in there and expect to have a good model, I can't see a clear relationship between this stuff, more than better governance indicators are usually accompanied with better HDI scores.
-But... I was saying that I wanted to find a relationship with HDI changes, not the actual HDI score. So, I'll compute a HDI change per year per country, (and lose 61 rows in the process, yay...)
+No se ve una relacion clara, hay tanto paises con punteos altos y bajos de GOB que tienen tanto HID altos o bajos
+Quiza puede verse una leve relacion de mayor punteo en GOB acompañado de mejor punteo den HDI
 
-# Data manipulation 2 Electric boogaloo
+Se realizara el mismo proceso con el crecimiento o decrecimiento de HDI anual (no se perderan datos al calcular la diferencia porque se añade el año 2001 en la seleccion)
 
-Note: originally I was excluding data from 2001, because some countries didn't have governance indicators for that year particularly, but!, since I'll lose one year by computing the growth in hdi I can still use this year and wont loose data al all. STONKS!!!
+# Manipulacion de datos utilizando operador diferencia
 
 ```{r}
 datos_model_2 <- datos_paper %>% 
@@ -290,7 +288,7 @@ datos_model_3 %>% select(iso2c, year, hdi, hdi_diff)
 
 vis_dat(datos_model_3)
 ```
-and here we go again
+Construccion de graficos
 ```{r}
 my_plot_3  <- list()
 
@@ -306,6 +304,7 @@ subplot(my_plot_3[1:5], nrows = 2, margin = 0.05) %>% layout(title = 'ODA vs HDI
 ```{r}
 subplot(my_plot_3[6:11], nrows = 2, margin = 0.05) %>% layout(title = 'CC vs HDI diff')
 ```
+
 ```{r}
 subplot(my_plot_3[12:17], nrows = 2, margin = 0.05) %>% layout(title = 'GE vs HDI diff')
 ```
@@ -322,13 +321,27 @@ subplot(my_plot_3[24:29], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HD
 subplot(my_plot_3[30], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI diff')
 ```
 
-Testing model while using hdi_diff as dependent variable (it went better than expected)
+Probar un nuevo modelo usadno ahora como variable dependiente hdi_diff
 ```{r}
 model_3 <- lm(hdi_diff ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model_3)
 summary(model_3)
 ```
-I liked the relationship visible in the PER.RNK gov indicators, let's try a model with those variables (it went worse than expected)
+Otro modelo ahora usando las variables PER.RNK en vex de EST
 ```{r}
 model_4 <- lm(hdi_diff ~ DT.ODA.ALLD.CD + CC.PER.RNK + GE.PER.RNK + PV.PER.RNK + RQ.PER.RNK + RL.EST, data=datos_model_3)
 summary(model_4)
 ```
+Viendo la historia de las variables en el tiempo (por pais)
+```{r}
+datos_model_3 %>% filter(iso2c == 'AF') %>% plot_ly(x = ~year) %>% 
+  add_trace(y = ~hdi, type = 'scatter', mode = 'lines+markers', name = 'hdi') %>% 
+  add_trace(y = ~hdi_diff, type = 'scatter', mode = 'lines+markers', name = 'hdi diff') %>% 
+  add_trace(y = ~DT.ODA.ALLD.CD / 10000000000, type = 'scatter', mode = 'lines+markers', name = 'ODA')  %>% 
+  add_trace(y = ~CC.EST, type = 'scatter', mode = 'lines+markers', name = 'CC') %>% 
+  add_trace(y = ~GE.EST, type = 'scatter', mode = 'lines+markers', name = 'GE')  %>% 
+  add_trace(y = ~PV.EST, type = 'scatter', mode = 'lines+markers', name = 'PV')  %>% 
+  add_trace(y = ~RQ.EST, type = 'scatter', mode = 'lines+markers', name = 'RQ')  %>% 
+  add_trace(y = ~RL.EST, type = 'scatter', mode = 'lines+markers', name = 'RL') 
+```
+
+
