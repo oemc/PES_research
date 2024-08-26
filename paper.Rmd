@@ -125,11 +125,31 @@ gob_indicators <- c(
 'RQ_PER_RNK_UPPER',
 'RQ_STD_ERR',
 'RL_EST')
+gdp_indicators <- c(
+  'NY_ADJ_NNTY_PC_CD',
+  'NY_ADJ_NNTY_PC_KD',
+  'NY_ADJ_NNTY_PC_KD_ZG',
+  'NY_GDP_PCAP_CN',
+  'NY_GDP_PCAP_KN',
+  'NY_GDP_PCAP_CD',
+  'NY_GDP_PCAP_KD',
+  'NY_GDP_MKTP_KD_ZG',
+  'NY_GDP_DEFL_ZS_AD',
+  'NY_GDP_DEFL_ZS',
+  'NY_GDP_MKTP_CD',
+  'NY_GDP_MKTP_CN',
+  'NY_GDP_MKTP_KN',
+  'NY_GDP_MKTP_KD',
+  'NY_GDP_PCAP_KD_ZG',
+  'NY_GDP_PCAP_PP_KD',
+  'NY_GDP_PCAP_PP_CD',
+  'SL_GDP_PCAP_EM_KD'
+)
 
 datos_WB <- data.frame(indicator = character(), iso2c = character(), year = double(), value = double())
 
 suppressWarnings(
-  for (indicator in c(oda_indicators, gob_indicators)) {
+  for (indicator in c(oda_indicators, gob_indicators, gdp_indicators)) {
     datos_WB <- rbind(datos_WB, read_csv(paste("datos_python", indicator, ".csv", sep =''), 
                                            col_names = c('indicator', 'iso2c', 'year', 'value'),
                                            col_types = list(col_character(), col_character(), col_double(), col_double())))
@@ -150,6 +170,12 @@ Revisar que datos estan como faltantes
 
 ```{r}
 vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
+  # DT.ODA.OATL.CD and DT.ODA.OATL.KD faltan
+  # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS tienen faltas
+  # Un par de ocurrencias pais-año que faltan datos
+```
+```{r}
+vis_dat(datos_paper %>% select(all_of(gsub("_", ".", gdp_indicators)))) 
   # DT.ODA.OATL.CD and DT.ODA.OATL.KD faltan
   # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS tienen faltas
   # Un par de ocurrencias pais-año que faltan datos
@@ -201,26 +227,37 @@ datos_paper %>%
 vis_dat(datos_paper %>% 
         filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
                !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001)) %>%
-        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS,
-               all_of(gsub("_", ".", gob_indicators))
+        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, NY.GDP.PCAP.CN, NY.GDP.PCAP.CD,
+               all_of(gsub("_", ".", gob_indicators)), 
                ))
+
 ```
 De 1925 observaciones reducimos a 1098
 ```{r}
 datos_model <- datos_paper %>% 
         filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
                !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001)) %>%
-        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS,
+        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, NY.GDP.PCAP.CN, NY.GDP.PCAP.CD,
                all_of(gsub("_", ".", gob_indicators))
                )
 ```
 
-Probando un modelo sencillo Minimos cuadrados
+## Modelo HDI
+Probando un modelo sencillo, regresion lineal, Minimos cuadrados, datos panel, HDI
 ```{r}
 model <- lm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model)
 summary(model)
 ```
 Todas las variables son significativas al 95% excepto ODA
+
+## Modelo GDP
+Probando un modelo sencillo, regresion lineal, Minimos cuadrados, datos panel, GDP
+
+```{r}
+model_2 <- lm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model)
+summary(model_2)
+```
+Government Effectiveness y Political Volatility son significativas al 99%
 
 Se revisara las relaciones entre las variables graficamente
 
@@ -229,7 +266,7 @@ Se revisara las relaciones entre las variables graficamente
 ```{r}
 my_plot  <- list()
 
-for (col in colnames(datos_model)[4:33]) {
+for (col in colnames(datos_model)[4:35]) {
   my_plot[[col]] <- plot_ly(x = datos_model[[col]], y = datos_model[[3]],
                             type = 'scatter', mode = 'markers', name = paste(col, "vs HDI"))  
 }
@@ -240,28 +277,34 @@ subplot(my_plot[1:5], nrows = 2, margin = 0.05) %>% layout(title = 'ODA vs HDI')
 ```
 
 ```{r}
-subplot(my_plot[6:11], nrows = 2, margin = 0.05) %>% layout(title = 'CC vs HDI')
+subplot(my_plot[6:7], nrows = 1, margin = 0.05) %>% layout(title = 'GDP vs HDI')
 ```
 
 ```{r}
-subplot(my_plot[12:17], nrows = 2, margin = 0.05) %>% layout(title = 'GE vs HDI')
+subplot(my_plot[8:13], nrows = 2, margin = 0.05) %>% layout(title = 'CC vs HDI')
+```
+
+```{r}
+subplot(my_plot[14:19], nrows = 2, margin = 0.05) %>% layout(title = 'GE vs HDI')
 ```
 
 
 ```{r}
-subplot(my_plot[18:23], nrows = 2, margin = 0.05) %>% layout(title = 'PV vs HDI')
+subplot(my_plot[20:25], nrows = 2, margin = 0.05) %>% layout(title = 'PV vs HDI')
 ```
 
 ```{r}
-subplot(my_plot[24:29], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HDI')
+subplot(my_plot[26:31], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HDI')
 ```
 
 ```{r}
-subplot(my_plot[30], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI')
+subplot(my_plot[32], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI')
 ```
+
 
 No se ve una relacion clara, hay tanto paises con punteos altos y bajos de GOB que tienen tanto HID altos o bajos
 Quiza puede verse una leve relacion de mayor punteo en GOB acompañado de mejor punteo den HDI
+Los datos de GPD si muestran una relacion positiva con el HDI visto en las graficas
 
 Se realizara el mismo proceso con el crecimiento o decrecimiento de HDI anual (no se perderan datos al calcular la diferencia porque se añade el año 2001 en la seleccion)
 
@@ -271,7 +314,7 @@ Se realizara el mismo proceso con el crecimiento o decrecimiento de HDI anual (n
 datos_model_2 <- datos_paper %>% 
         filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
                !year %in% c(1995, 1996, 1997, 1998, 1999, 2000)) %>%
-        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS,
+        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, NY.GDP.PCAP.CN, NY.GDP.PCAP.CD,
                all_of(gsub("_", ".", gob_indicators))
                )
 
@@ -281,10 +324,11 @@ vis_dat(datos_model_2)
 ```{r}
 datos_model_3 <- datos_model_2 %>%
   arrange(iso2c, year) %>%
-  mutate(hdi_diff = hdi - lag(hdi)) %>%
+  mutate(hdi_diff = hdi - lag(hdi), NY.GDP.PCAP.CN_diff = NY.GDP.PCAP.CN - lag(NY.GDP.PCAP.CN), NY.GDP.PCAP.CD_diff = NY.GDP.PCAP.CD - lag(NY.GDP.PCAP.CD)) %>%
   filter(!year %in% c(2001))
 
 datos_model_3 %>% select(iso2c, year, hdi, hdi_diff)
+datos_model_3 %>% select(iso2c, year, NY.GDP.PCAP.CD, NY.GDP.PCAP.CD_diff, NY.GDP.PCAP.CN, NY.GDP.PCAP.CN_diff)
 
 vis_dat(datos_model_3)
 ```
@@ -292,8 +336,8 @@ Construccion de graficos
 ```{r}
 my_plot_3  <- list()
 
-for (col in colnames(datos_model_3)[4:33]) {
-  my_plot_3[[col]] <- plot_ly(x = datos_model_3[[col]], y = datos_model_3[[34]],
+for (col in colnames(datos_model_3)[4:38]) {
+  my_plot_3[[col]] <- plot_ly(x = datos_model_3[[col]], y = datos_model_3[[36]],
                             type = 'scatter', mode = 'markers', name = paste(col, "vs HDI diff"))  
 }
 
@@ -302,35 +346,48 @@ subplot(my_plot_3[1:5], nrows = 2, margin = 0.05) %>% layout(title = 'ODA vs HDI
 ```
 
 ```{r}
-subplot(my_plot_3[6:11], nrows = 2, margin = 0.05) %>% layout(title = 'CC vs HDI diff')
+subplot(my_plot_3[6:7], nrows = 2, margin = 0.05) %>% layout(title = 'GDP vs HDI diff')
 ```
 
 ```{r}
-subplot(my_plot_3[12:17], nrows = 2, margin = 0.05) %>% layout(title = 'GE vs HDI diff')
+subplot(my_plot_3[8:13], nrows = 2, margin = 0.05) %>% layout(title = 'CC vs HDI diff')
 ```
 
 ```{r}
-subplot(my_plot_3[18:23], nrows = 2, margin = 0.05) %>% layout(title = 'PV vs HDI diff')
+subplot(my_plot_3[14:19], nrows = 2, margin = 0.05) %>% layout(title = 'GE vs HDI diff')
 ```
 
 ```{r}
-subplot(my_plot_3[24:29], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HDI diff')
+subplot(my_plot_3[20:25], nrows = 2, margin = 0.05) %>% layout(title = 'PV vs HDI diff')
 ```
 
 ```{r}
-subplot(my_plot_3[30], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI diff')
+subplot(my_plot_3[26:31], nrows = 2, margin = 0.05) %>% layout(title = 'RQ vs HDI diff')
 ```
 
+```{r}
+subplot(my_plot_3[32], nrows = 1, margin = 0.05) %>% layout(title = 'RL vs HDI diff')
+```
+
+## Modelo HDI_diff
 Probar un nuevo modelo usadno ahora como variable dependiente hdi_diff
 ```{r}
 model_3 <- lm(hdi_diff ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model_3)
 summary(model_3)
 ```
-Otro modelo ahora usando las variables PER.RNK en vex de EST
+## Modelo HDI_diff PER.RNK
+Otro modelo ahora usando las variables PER.RNK en vez de EST
 ```{r}
 model_4 <- lm(hdi_diff ~ DT.ODA.ALLD.CD + CC.PER.RNK + GE.PER.RNK + PV.PER.RNK + RQ.PER.RNK + RL.EST, data=datos_model_3)
 summary(model_4)
 ```
+## Modelo GDP_diff
+```{r}
+model_5 <- lm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST, data=datos_model_3)
+summary(model_5)
+```
+
+# Visualizacion de Datos historia
 Viendo la historia de las variables en el tiempo (por pais)
 ```{r}
 datos_model_3 %>% filter(iso2c == 'AF') %>% plot_ly(x = ~year) %>% 
