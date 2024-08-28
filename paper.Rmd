@@ -126,24 +126,24 @@ gob_indicators <- c(
 'RQ_STD_ERR',
 'RL_EST')
 gdp_indicators <- c(
-  'NY_ADJ_NNTY_PC_CD',
-  'NY_ADJ_NNTY_PC_KD',
-  'NY_ADJ_NNTY_PC_KD_ZG',
-  'NY_GDP_PCAP_CN',
-  'NY_GDP_PCAP_KN',
-  'NY_GDP_PCAP_CD',
-  'NY_GDP_PCAP_KD',
-  'NY_GDP_MKTP_KD_ZG',
-  'NY_GDP_DEFL_ZS_AD',
-  'NY_GDP_DEFL_ZS',
-  'NY_GDP_MKTP_CD',
-  'NY_GDP_MKTP_CN',
-  'NY_GDP_MKTP_KN',
-  'NY_GDP_MKTP_KD',
-  'NY_GDP_PCAP_KD_ZG',
-  'NY_GDP_PCAP_PP_KD',
-  'NY_GDP_PCAP_PP_CD',
-  'SL_GDP_PCAP_EM_KD'
+'NY_ADJ_NNTY_PC_CD',
+'NY_ADJ_NNTY_PC_KD',
+'NY_ADJ_NNTY_PC_KD_ZG',
+'NY_GDP_PCAP_CN',
+'NY_GDP_PCAP_KN',
+'NY_GDP_PCAP_CD',
+'NY_GDP_PCAP_KD',
+'NY_GDP_MKTP_KD_ZG',
+'NY_GDP_DEFL_ZS_AD',
+'NY_GDP_DEFL_ZS',
+'NY_GDP_MKTP_CD',
+'NY_GDP_MKTP_CN',
+'NY_GDP_MKTP_KN',
+'NY_GDP_MKTP_KD',
+'NY_GDP_PCAP_KD_ZG',
+'NY_GDP_PCAP_PP_KD',
+'NY_GDP_PCAP_PP_CD',
+'SL_GDP_PCAP_EM_KD'
 )
 
 datos_WB <- data.frame(indicator = character(), iso2c = character(), year = double(), value = double())
@@ -175,10 +175,10 @@ vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators))))
   # Un par de ocurrencias pais-año que faltan datos
 ```
 ```{r}
-vis_dat(datos_paper %>% select(all_of(gsub("_", ".", gdp_indicators)))) 
-  # DT.ODA.OATL.CD and DT.ODA.OATL.KD faltan
-  # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS tienen faltas
-  # Un par de ocurrencias pais-año que faltan datos
+vis_dat(datos_paper %>% filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
+               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2023)) %>%
+          select(NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, NY.GDP.MKTP.CD, NY.GDP.MKTP.CN)) 
+  # NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, NY.GDP.MKTP.CD, NY.GDP.MKTP.CN son buenos candidatos, 'SY'falta PIB per Capita en 2022
 ```
 
 ```{r}
@@ -200,12 +200,13 @@ vis_dat(datos_paper %>% arrange(year) %>% select(hdi))
 
 Tomando en cuenta los datos faltantes, hacer filtros para seleccionar una muestra mas pequeña
 ```{r}
-datos_paper %>% filter(is.na(DT.ODA.ALLD.CD)) ## SS (South Sudan) y ZW (Zimbabwe) faltantes de ODA y GOB indicators
+# 2023 aun no tiene registro en ODA
+datos_paper %>% filter(is.na(DT.ODA.ALLD.CD), !year %in% c(2023)) ## SS (South Sudan) y ZW (Zimbabwe) faltantes de ODA y GOB indicators
 
 datos_paper %>% filter(!iso2c %in% c('SS', 'ZW')) %>% filter(is.na(CC.EST)) %>% group_by(year) %>% summarise(times = n())
-  # para años 1995, 1997, 1999 y 2001 no hay registros de GOB
+  # para años 1995, 1997, 1999, 2001 y 2023 no hay registros de GOB
   # 1996, 1998, 2000, 2002 and 2003 tiene algunos paises sin datos
-datos_paper %>% arrange(year) %>% filter(!iso2c %in% c('SS', 'ZW'), !year %in% c(1995, 1997, 1999, 2001)) %>%
+datos_paper %>% arrange(year) %>% filter(!iso2c %in% c('SS', 'ZW'), !year %in% c(1995, 1997, 1999, 2001, 2023)) %>%
                 filter(is.na(CC.EST)) # FM (Micronesia), KI (Kiribati) y TL (Timor-Leste) no tiene GOB in en estos años 
                                       # tambien CV (Cabo Verde) and SB (Solomon Islands) no registro GOB en 2000 - 2003
 ```
@@ -216,23 +217,30 @@ BT (Bhutan), ER (Eritrea), GW (Guinea-Bissau), KP (North Korea), LB (Lebanon), N
 datos_paper %>% 
           arrange(iso2c) %>% 
           filter(!iso2c %in% c('SS','ZW','BT','ER','GW','KP','LB','NG','PS','SO','VU','FM','KI','TL','CB','CV','SB'), 
-                 !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001)) %>%
+                 !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2023)) %>%
           select(iso2c, year, hdi,
                  all_of(gsub("_", ".", gob_indicators))
                  )
-
 ```
 
 ```{r}
 vis_dat(datos_paper %>% 
-        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
-               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001)) %>%
+        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB','SY'),
+               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2023)) %>%
         select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, NY.GDP.PCAP.CN, NY.GDP.PCAP.CD,
                all_of(gsub("_", ".", gob_indicators)), 
                ))
 
+datos_paper %>% 
+        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
+               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2023)) %>%
+        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, NY.GDP.PCAP.CN, NY.GDP.PCAP.CD,
+               all_of(gsub("_", ".", gob_indicators)), 
+               ) %>%
+        filter(if_any(everything(), ~is.na(.)))
 ```
-De 1925 observaciones reducimos a 1098
+De 1925 observaciones reducimos a 1098 (hasta 2019) o a 
+
 ```{r}
 datos_model <- datos_paper %>% 
         filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB'),
@@ -400,5 +408,4 @@ datos_model_3 %>% filter(iso2c == 'AF') %>% plot_ly(x = ~year) %>%
   add_trace(y = ~RQ.EST, type = 'scatter', mode = 'lines+markers', name = 'RQ')  %>% 
   add_trace(y = ~RL.EST, type = 'scatter', mode = 'lines+markers', name = 'RL') 
 ```
-
 
