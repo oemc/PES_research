@@ -279,44 +279,167 @@ vis_dat(datos_model)
 # Modelos Regresion Lineal {.tabset .tabset-fade}
 
 Probando modelos sencillos, regresion lineal, Minimos cuadrados, datos panel, HDI o GDP o sus differecias
-
-## HDI ~ ODA.ALL
-
-### HDI = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-
 ```{r}
-summary(lm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model))
-# Todas las variables son significativas al 99% excepto Regulatory Quality
+vd <- c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff')
+vi <- c('DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff')
+models <- list()
+keys <- character()
+for (vd_ in vd) {
+  for (vi_ in vi) {
+    key <- paste(vd_, vi_, sep = "~")
+    keys <- c(keys, key)
+    f <- paste(vd_, '~', vi_, '+ CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW')
+    models[[key]] <- lm(f, data=datos_model)
+  }
+}
 ```
 
-## HDI ~ ODA.PC
 
-### HDI = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+## HDI {.tabset .tabset-fade}
 
+### ODA.ALL
+HDI = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
 ```{r}
-summary(lm(hdi ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model))
+summary(models[[keys[1]]])
 # Todas las variables son significativas al 99% excepto Regulatory Quality
 ```
+###
 
-## GPD.PC ~ ODA.ALL
-
-### GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-
+### ODA.ALL_diff
+HDI = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
 ```{r}
-summary(lm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model))
+summary(models[[keys[2]]])
+# Todas las variables son significativas al 99% excepto ODA.ALL_diff y Regulatory Quality
+```
+###
+
+### ODA.PC
+HDI = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[3]]])
+# Todas las variables son significativas al 99% excepto Regulatory Quality
+```
+###
+
+### ODA.PC_diff
+HDI = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[4]]])
+# Todas las variables son significativas al 99% excepto  ODA.ALL_diff y Regulatory Quality
+```
+###
+
+##
+
+## HDI_diff {.tabset .tabset-fade}
+
+### ODA.ALL
+HDI_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[5]]])
+# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption y Rule of Law
+```
+###
+
+### ODA.ALL_diff
+HDI_diff = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[6]]])
+# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
+```
+###
+
+### ODA.PC
+HDI_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[7]]])
+# Todas las variables son significativas al 95% excepto Rule of Law y Voice and Accountability
+```
+###
+
+### ODA.PC_diff
+HDI_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[8]]])
+# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
+```
+###
+
+##
+
+## GPD.PC {.tabset .tabset-fade}
+
+### ODA.ALL
+GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[9]]])
 # Todas las variables son significativas al 99% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Rule of Law
 ```
+###
 
-## GPD.PC ~ ODA.PC
-
-### GPD.PC = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-
+### ODA.ALL_diff
+GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
 ```{r}
-summary(lm(NY.GDP.PCAP.CD ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model))
+summary(models[[keys[10]]])
+# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
+```
+###
+
+### ODA.PC
+GPD.PC = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[11]]])
 # Todas las variables son significativas al 99% excepto Rule of Law
 ```
+###
 
-# 
+### ODA.PC_diff
+GPD.PC = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[12]]])
+# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
+```
+###
+
+##
+
+## GPD.PC_diff {.tabset .tabset-fade}
+
+### ODA.ALL
+GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[13]]])
+# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Voice and Accountability
+```
+###
+
+### ODA.ALL_diff
+GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[14]]])
+# Todas las variables son significativas al 95% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
+```
+###
+
+### ODA.PC
+GPD.PC_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[15]]])
+# Todas las variables son significativas al 95% excepto ODA.PC, Control of Corruption, Political Stability, Regulatory Quality y Voice and Accountability
+```
+###
+
+### ODA.PC_diff
+GPD.PC_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+```{r}
+summary(models[[keys[16]]])
+# Todas las variables son significativas al 95% excepto ODA.PC_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
+```
+###
+
+##
+
+#
 
 Se revisara las relaciones entre las variables graficamente
 
