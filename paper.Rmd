@@ -9,21 +9,27 @@ output:
   pdf_document: default
 ---
 
+# Secciones {.tabset .tabset-fade}
+
+## Referencias
+
 International aid may take the form of multilateral aid -- provided through international bodies such as the UN, or NGOs such as Oxfam -- or bilateral aid, which operates on a government-to-government basis. There is considerable debate about whether international aid works, in the sense of reducing poverty and stimulating development.
 
 However, the effectiveness of aid is often diluted by corruption. Aid is invariably channeled through the governments of recipient countries, in which power is often concentrated in the hands of a few politicians and bureaucrats, and the mechanisms of accountability are, at best, poorly developed. This tends to benefit corrupt leaders and elites rather than the people, projects and programs for which it was intended.
 
-\textbf{Watts, Carl. (2014). Re: Does foreign aid help the developing countries towards development?. Retrieved from: $https://www.researchgate.net/post/Does_foreign_aid_help_the_developing_countries_towards_development/5322005ed039b1e7648b459c/citation/download.$}
+__Watts, Carl. (2014). Re: Does foreign aid help the developing countries towards development?. Retrieved from:__ https://www.researchgate.net/post/Does_foreign_aid_help_the_developing_countries_towards_development/5322005ed039b1e7648b459c/citation/download.
 
 The hypothesis that foreign aid can promote growth in developing countries was explored, using panel data series for foreign aid, while accounting for regional differences in Asian, African, Latin American, and the Caribbean countries as well as the differences in income levels, the results of this study also indicate that foreign aid has mixed effects on economic growth in developing countries.
 
-\textbf{Ekanayake, E. & Chatrna, Dasha. (2010). The effect of foreign aid on economic growth in developing countries. Journal of International Business and Cultural Studies. 3.}
+__Ekanayake, E. & Chatrna, Dasha. (2010). The effect of foreign aid on economic growth in developing countries. Journal of International Business and Cultural Studies. 3.__
 
 This study examines the relationships between foreign aid, institutional structure, and economic performance for 80 countries in Europe, America, Africa, and Asia. It is found that official development assistance and the quality of institutional structure in the sample countries affect economic growth positively.
 
-\textbf{Hayaloğlu, Pınar. (2023). Foreign Aid, Institutions, and Economic Performance in Developing Countries. Eskişehir Osmangazi Üniversitesi İktisadi ve İdari Bilimler Dergisi. 18. 748-765. 10.17153/oguiibf.1277348.}
+__Hayaloğlu, Pınar. (2023). Foreign Aid, Institutions, and Economic Performance in Developing Countries. Eskişehir Osmangazi Üniversitesi İktisadi ve İdari Bilimler Dergisi. 18. 748-765. 10.17153/oguiibf.1277348.__
 
-# Cargando Librerias
+## Manual para replicar
+
+### Cargando Librerias
 
 Algunas librerias y paquetes usados para obtener y descargar los datos
 
@@ -39,7 +45,7 @@ library(plm)       # modelos lineales para datos panel
 library(car)       # test y utilidaddes para modelos
 ```
 
-# Obtener datos
+### Obtener datos
 
 Datos para paises bajos ingresos sean utilizados, segun clasificación del banco mundial, hay 26 paises de bajos ingresos y 51 de ingresos medios bajos
 
@@ -73,7 +79,7 @@ my_countries
 
 Datos del banco mundial (para ODA y los indices de gobernanza) y el Human Development Reports API son descargados desde scripts de Python. Son almacenados en archivos CSV y luego son cargados aqui:
 
-## HDI
+### cargar HDI
 
 ```{r}
 datos_HDI <- read_csv("datos_python_HDI.csv", col_names = c('Code', 'iso2c', 'indicator', 'year', 'value'), 
@@ -82,7 +88,7 @@ datos_HDI <- read_csv("datos_python_HDI.csv", col_names = c('Code', 'iso2c', 'in
 hdi_indicators <- datos_HDI %>% distinct(indicator) %>% .$indicator
 ```
 
-## ODA, GDP, POP.GROW
+### cargar ODA, GDP, POP.GROW
 
 ```{r}
 oda_indicators <- c(
@@ -169,18 +175,51 @@ suppressWarnings(
 )
 ```
 
-# Manipulacion de Datos {.tabset .tabset-fade}
+### cargar POVERTY
+```{r}
+Poverty <- read_excel("GlobalExtremePovertyDollaraDay_Compact.xlsx", sheet = "Data Long Format")
+
+names(Poverty) <- c("ccode", "country", "year", "value")
+
+Poverty[Poverty=="Cape Verde"] <- "Cabo Verde"
+Poverty[Poverty=="Congo"] <- "Congo, Rep."
+Poverty[Poverty=="Egypt"] <- "Egypt, Arab Rep."
+Poverty[Poverty=="Iran"] <- "Iran, Islamic Rep."
+Poverty[Poverty=="Kyrgyzstan"] <- "Kyrgyz Republic"
+Poverty[Poverty=="Laos"] <- "Lao PDR"
+Poverty[Poverty=="Macedonia"] <- "North Macedonia"
+Poverty[Poverty=="Russia"] <- "Russian Federation"
+Poverty[Poverty=="Slovakia"] <- "Slovak Republic"
+Poverty[Poverty=="South Korea"] <- "Korea, Rep."
+Poverty[Poverty=="Swaziland"] <- "Eswatini"
+Poverty[Poverty=="Syria"] <- "Syrian Arab Republic"
+Poverty[Poverty=="The Gambia"] <- "Gambia, The"
+Poverty[Poverty=="Turkey"] <- "Turkiye"
+Poverty[Poverty=="Venezuela"] <- "Venezuela, RB"
+Poverty[Poverty=="Yemen"] <- "Yemen, Rep."
+
+Poverty <- Poverty %>%
+  filter(year > 1994) %>%
+  merge(WDI_data$country, all.x = TRUE) %>%
+  mutate(indicator = 'POV') %>%
+  merge(my_countries) %>%
+  select(indicator, iso2c, year, value)
+
+```
+
+
+### Manipulacion de Datos {.tabset .tabset-fade}
 
 Transformar la estructura de los datos para una mejor comprension
 
 ```{r}
-datos_paper <- rbind(datos_WB, datos_HDI %>% select(indicator, iso2c, year, value)) %>%
+datos_paper <- rbind(datos_WB, datos_HDI %>% select(indicator, iso2c, year, value), Poverty) %>%
   pivot_wider(names_from = indicator, values_from = value)
 ```
 
 Revisar que datos estan como faltantes
 
-## ODA
+#### ODA
 
 ```{r}
 vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
@@ -189,9 +228,7 @@ vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators))))
   # Un par de ocurrencias pais-año que faltan datos
 ```
 
-## 
-
-## GDP
+#### GDP
 
 ```{r}
 vis_dat(datos_paper %>% select(NY.GDP.PCAP.CN, NY.GDP.PCAP.CD)) 
@@ -199,18 +236,14 @@ vis_dat(datos_paper %>% select(NY.GDP.PCAP.CN, NY.GDP.PCAP.CD))
   # 'SY'falta PIB per Capita en 2022, 2023 sin datos algunos paises
 ```
 
-## 
-
-## GOV
+#### GOV
 
 ```{r}
 vis_dat(datos_paper %>% arrange(year) %>% select(all_of(gsub("_", ".", gob_indicators)))) 
   # Datos del 2000 para atras tienen espacios faltantes 
 ```
 
-## 
-
-## HDI
+#### HDI
 
 ```{r}
 vis_dat(datos_paper %>% select(all_of(hdi_indicators))) 
@@ -218,40 +251,48 @@ vis_dat(datos_paper %>% select(all_of(hdi_indicators)))
   # hdi faltante en multiples ocaciones
 ```
 
-## 
-
-## POP.GROW
+#### POP.GROW
 
 ```{r}
 vis_dat(datos_paper %>% arrange(iso2c) %>% select(SP.POP.GROW)) 
   # ZW no tiene datos de crecimiento poblacional
 
 ```
-##
+
+#### POV
+
+```{r}
+vis_dat(datos_paper %>% arrange(iso2c) %>% select(POV)) 
+  # Hay muchos paises sin datos
+
+```
+
+#### 2001 - 2022
 
 Tomando en cuenta los datos faltantes, hacer filtros para seleccionar una muestra mas pequeña
 
-## 2001 - 2022
 ```{r}
 vis_dat(datos_paper %>% 
         filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB','SY'),
                !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2023)) %>%
         select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, 
-               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, all_of(gsub("_", ".", gob_indicators)), 
+               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, POV, all_of(gsub("_", ".", gob_indicators)), 
                ))
 ```
-##
 
-## 2002 - 2002
+
+#### 2002 - 2002
+
 ```{r}
 vis_dat(datos_paper %>% 
         filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB','SY'),
                !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2023)) %>%
         select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, 
-               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, all_of(gsub("_", ".", gob_indicators)), 
+               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, POV, all_of(gsub("_", ".", gob_indicators)) 
                ))
 ```
-##
+
+### Operador Diferencia
 
 De 2232 observaciones reducimos a 1260 (2002 hasta 2022) o a 1320 (2001 hasta 2022)
 
@@ -276,176 +317,22 @@ vis_dat(datos_model)
 
 ```
 
-# Modelos Regresion Lineal {.tabset .tabset-fade}
-
-Probando modelos sencillos, regresion lineal, Minimos cuadrados, datos panel, HDI o GDP o sus differecias
+### Promedio de Indices de Gobernanza
 ```{r}
-vd <- c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff')
-vi <- c('DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff')
-models <- list()
-keys <- character()
-for (vd_ in vd) {
-  for (vi_ in vi) {
-    key <- paste(vd_, vi_, sep = "~")
-    keys <- c(keys, key)
-    f <- paste(vd_, '~', vi_, '+ CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW')
-    models[[key]] <- lm(f, data=datos_model)
-  }
-}
+datos_model <- datos_model %>%
+  mutate(GOV =  (CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST) / 6)
+
+vis_dat(datos_model)
 ```
 
 
-## HDI {.tabset .tabset-fade}
+## Visualizacion de datos {.tabset .tabset-fade}
 
-### ODA.ALL
-HDI = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[1]]])
-# Todas las variables son significativas al 99% excepto Regulatory Quality
-```
-###
+### Relaciones {.tabset .tabset-fade}
 
-### ODA.ALL_diff
-HDI = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[2]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL_diff y Regulatory Quality
-```
-###
+Se revisara las relaciones entre las variables graficamente No se ve una relacion clara, hay tanto paises con punteos altos y bajos de GOB que tienen tanto HID altos o bajos Quiza puede verse una leve relacion de mayor punteo en GOB acompañado de mejor punteo den HDI Los datos de GPD si muestran una relacion positiva con el HDI visto en las graficas
 
-### ODA.PC
-HDI = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[3]]])
-# Todas las variables son significativas al 99% excepto Regulatory Quality
-```
-###
-
-### ODA.PC_diff
-HDI = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[4]]])
-# Todas las variables son significativas al 99% excepto  ODA.ALL_diff y Regulatory Quality
-```
-###
-
-##
-
-## HDI_diff {.tabset .tabset-fade}
-
-### ODA.ALL
-HDI_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[5]]])
-# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption y Rule of Law
-```
-###
-
-### ODA.ALL_diff
-HDI_diff = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[6]]])
-# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
-```
-###
-
-### ODA.PC
-HDI_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[7]]])
-# Todas las variables son significativas al 95% excepto Rule of Law y Voice and Accountability
-```
-###
-
-### ODA.PC_diff
-HDI_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[8]]])
-# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
-```
-###
-
-##
-
-## GPD.PC {.tabset .tabset-fade}
-
-### ODA.ALL
-GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[9]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Rule of Law
-```
-###
-
-### ODA.ALL_diff
-GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[10]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
-```
-###
-
-### ODA.PC
-GPD.PC = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[11]]])
-# Todas las variables son significativas al 99% excepto Rule of Law
-```
-###
-
-### ODA.PC_diff
-GPD.PC = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[12]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
-```
-###
-
-##
-
-## GPD.PC_diff {.tabset .tabset-fade}
-
-### ODA.ALL
-GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[13]]])
-# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Voice and Accountability
-```
-###
-
-### ODA.ALL_diff
-GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[14]]])
-# Todas las variables son significativas al 95% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
-```
-###
-
-### ODA.PC
-GPD.PC_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[15]]])
-# Todas las variables son significativas al 95% excepto ODA.PC, Control of Corruption, Political Stability, Regulatory Quality y Voice and Accountability
-```
-###
-
-### ODA.PC_diff
-GPD.PC_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-```{r}
-summary(models[[keys[16]]])
-# Todas las variables son significativas al 95% excepto ODA.PC_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
-```
-###
-
-##
-
-#
-
-Se revisara las relaciones entre las variables graficamente
-
-# Visualizacion de datos {.tabset .tabset-fade}
-
-## HDI
+#### HDI
 
 ```{r}
 my_plot  <- list()
@@ -458,7 +345,7 @@ subplot(my_plot[1:4], nrows = 2, margin = 0.05) %>% layout(title = 'HDI vs ODA')
 subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'HDI vs GOB')
 ```
 
-## HDI diff
+#### HDI diff
 
 ```{r}
 my_plot  <- list()
@@ -471,7 +358,7 @@ subplot(my_plot[1:4], nrows = 2, margin = 0.05) %>% layout(title = 'HDI diff vs 
 subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'HDI diff vs GOB')
 ```
 
-## GPD.PC
+#### GPD.PC
 
 ```{r}
 my_plot  <- list()
@@ -485,7 +372,8 @@ subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'GDP.PC vs G
 
 ```
 
-## GPD.PC diff
+
+#### GPD.PC diff
 
 ```{r}
 my_plot  <- list()
@@ -498,15 +386,9 @@ subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'GDP.PC diff
 
 ```
 
-# 
+### Visualizacion de Datos historia
 
-No se ve una relacion clara, hay tanto paises con punteos altos y bajos de GOB que tienen tanto HID altos o bajos Quiza puede verse una leve relacion de mayor punteo en GOB acompañado de mejor punteo den HDI Los datos de GPD si muestran una relacion positiva con el HDI visto en las graficas
-
-Se realizara el mismo proceso con el crecimiento o decrecimiento de HDI anual
-
-# Visualizacion de Datos historia
-
-Viendo la historia de las variables en el tiempo (por pais)
+Se realizara el mismo proceso con el crecimiento o decrecimiento de HDI anual Viendo la historia de las variables en el tiempo (por pais)
 
 ```{r}
 datos_model %>% filter(iso2c == 'AF') %>% plot_ly(x = ~year) %>% 
@@ -522,9 +404,191 @@ datos_model %>% filter(iso2c == 'AF') %>% plot_ly(x = ~year) %>%
   add_trace(y = ~VA.EST, type = 'scatter', mode = 'lines+markers', name = 'VA')
 ```
 
-# Modelos Efectos fijos {.tabset .tabset-fade}
 
-## HDI ~ ODA.ALL
+## Modelos Regresion Lineal {.tabset .tabset-fade}
+
+Probando modelos sencillos, regresion lineal, Minimos cuadrados, datos panel, HDI o GDP o sus differecias
+
+```{r}
+vd <- c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff')
+vi <- c('DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff')
+models <- list()
+keys <- character()
+for (vd_ in vd) {
+  for (vi_ in vi) {
+    key <- paste(vd_, vi_, sep = "~")
+    keys <- c(keys, key)
+    #f <- paste(vd_, '~', vi_, '+ CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW')
+    #f <- paste(vd_, '~', vi_, '+ CC.PER.RNK + GE.PER.RNK + PV.PER.RNK + RQ.PER.RNK + RL.PER.RNK + VA.PER.RNK + SP.POP.GROW')
+    f <- paste(vd_, '~', vi_, '+ GOV + SP.POP.GROW')
+    models[[key]] <- lm(f, data=datos_model)
+  }
+}
+```
+
+### HDI {.tabset .tabset-fade}
+
+#### ODA.ALL
+
+HDI = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[1]]])
+# Todas las variables son significativas al 99% excepto Regulatory Quality
+```
+
+
+#### ODA.ALL_diff
+
+HDI = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[2]]])
+# Todas las variables son significativas al 99% excepto ODA.ALL_diff y Regulatory Quality
+```
+
+
+#### ODA.PC
+
+HDI = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[3]]])
+# Todas las variables son significativas al 99% excepto Regulatory Quality
+```
+
+
+#### ODA.PC_diff
+
+HDI = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[4]]])
+# Todas las variables son significativas al 99% excepto  ODA.ALL_diff y Regulatory Quality
+```
+ 
+
+### HDI_diff {.tabset .tabset-fade}
+
+#### ODA.ALL
+
+HDI_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[5]]])
+# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption y Rule of Law
+```
+
+
+#### ODA.ALL_diff
+
+HDI_diff = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[6]]])
+# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
+```
+
+
+#### ODA.PC
+
+HDI_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[7]]])
+# Todas las variables son significativas al 95% excepto Rule of Law y Voice and Accountability
+```
+ 
+
+#### ODA.PC_diff
+
+HDI_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[8]]])
+# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
+```
+
+### GPD.PC {.tabset .tabset-fade}
+
+#### ODA.ALL
+
+GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[9]]])
+# Todas las variables son significativas al 99% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Rule of Law
+```
+
+#### ODA.ALL_diff
+
+GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[10]]])
+# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
+```
+
+#### ODA.PC
+
+GPD.PC = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[11]]])
+# Todas las variables son significativas al 99% excepto Rule of Law
+```
+
+#### ODA.PC_diff
+
+GPD.PC = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[12]]])
+# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
+```
+
+### GPD.PC_diff {.tabset .tabset-fade}
+
+#### ODA.ALL
+
+GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[13]]])
+# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Voice and Accountability
+```
+
+#### ODA.ALL_diff
+
+GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[14]]])
+# Todas las variables son significativas al 95% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
+```
+
+#### ODA.PC
+
+GPD.PC_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[15]]])
+# Todas las variables son significativas al 95% excepto ODA.PC, Control of Corruption, Political Stability, Regulatory Quality y Voice and Accountability
+```
+
+#### ODA.PC_diff
+
+GPD.PC_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+
+```{r}
+summary(models[[keys[16]]])
+# Todas las variables son significativas al 95% excepto ODA.PC_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
+```
+
+
+## Modelos Efectos fijos {.tabset .tabset-fade}
+
+### HDI \~ ODA.ALL
 
 ```{r}
 plm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
@@ -533,9 +597,8 @@ plm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST +
 # summary(lm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
 # Corruption Control, Government Effectiveness, Political Stability y Voice and Accountability no son significativas
 ```
-##
 
-## HDI ~ ODA.PC
+### HDI \~ ODA.PC
 
 ```{r}
 plm(hdi ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
@@ -544,9 +607,8 @@ plm(hdi ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.ES
 #summary(lm(hdi ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
 # Corruption Control, Government Effectiveness y Voice and Accountability no son significativas
 ```
-##
 
-## GDP.PC ~ ODA.ALL
+### GDP.PC \~ ODA.ALL
 
 ```{r}
 plm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
@@ -555,9 +617,8 @@ plm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST
 #summary(lm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
 # Intercepto, Corruption Control, Regulatory Quality, Rule of Law, Voice and Accountability y Population Growth no son significativas
 ```
-##
 
-## GDP.PC ~ ODA.PC
+### GDP.PC \~ ODA.PC
 
 ```{r}
 plm(NY.GDP.PCAP.CD ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
@@ -566,5 +627,3 @@ plm(NY.GDP.PCAP.CD ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.
 #summary(lm(NY.GDP.PCAP.CD ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
 # Corruption Control, Regulatory Quality, Rule of Law y Voice and Accountability no son significativas
 ```
-##
-
