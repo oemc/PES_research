@@ -35,6 +35,7 @@ Algunas librerias y paquetes usados para obtener y descargar los datos
 
 ```{r}
 library(tidyverse) # manejo de dataframes
+library(reshape2)  # para tranfromar data de long a wide
 library(WDI)       # libreria para acceder a metadata de banco mundial
 library(readxl)    # leer archivos de excel
 library(readr)     # leer archivos csv
@@ -208,13 +209,29 @@ Poverty <- Poverty %>%
 ```
 
 
-### Manipulacion de Datos {.tabset .tabset-fade}
+### Manipulacion de Datos
 
-Transformar la estructura de los datos para una mejor comprension
-
+#### Transformar datos a la estructura wide
 ```{r}
 datos_paper <- rbind(datos_WB, datos_HDI %>% select(indicator, iso2c, year, value), Poverty) %>%
   pivot_wider(names_from = indicator, values_from = value)
+```
+
+#### Promedio de Indices de Gobernanza
+```{r}
+datos_paper <- datos_paper %>% mutate(GOV =  (CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST) / 6)
+```
+
+#### Operador Diferencia
+
+```{r}
+datos_paper <- datos_paper %>% arrange(iso2c, year) %>% 
+        mutate(hdi_diff = case_when(iso2c == dplyr::lag(iso2c) ~ hdi - dplyr::lag(hdi), TRUE ~ NA_real_), 
+               NY.GDP.PCAP.CD_diff = case_when(iso2c == dplyr::lag(iso2c) ~ NY.GDP.PCAP.CD - dplyr::lag(NY.GDP.PCAP.CD), TRUE ~ NA_real_),
+               DT.ODA.ALLD.CD_diff = case_when(iso2c == dplyr::lag(iso2c) ~ DT.ODA.ALLD.CD - dplyr::lag(DT.ODA.ALLD.CD), TRUE ~ NA_real_),
+               DT.ODA.ODAT.PC.ZS_diff = case_when(iso2c == dplyr::lag(iso2c) ~ DT.ODA.ODAT.PC.ZS - dplyr::lag(DT.ODA.ODAT.PC.ZS), TRUE ~ NA_real_),
+               GOV_diff = case_when(iso2c == dplyr::lag(iso2c) ~ GOV - dplyr::lag(GOV), TRUE ~ NA_real_),
+               POV_diff = case_when(iso2c == dplyr::lag(iso2c) ~ POV - dplyr::lag(POV), TRUE ~ NA_real_))
 ```
 
 Revisar que datos estan como faltantes
@@ -222,6 +239,35 @@ Revisar que datos estan como faltantes
 #### ODA
 
 ```{r}
+# # Vector de variables de interes
+# v = c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CN', 'NY.GDP.PCAP.CD_diff', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff',
+#       'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff', 'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST',
+#       'VA.EST', 'GOV', 'GOV_diff', 'POV', 'POV_diff'
+# )
+# 
+# # Datos en formato long
+# datos_paper_long <- datos_paper %>% melt(id.vars = c('iso2c','year'))
+# 
+# # Datos faltantes
+# for (v_ in v) {
+#   for (f_data in datos_paper_long %>% filter(variable == v_, is.na(value))) {
+#     # candidatos a eliminar
+#     delete_c = f_data$iso2c
+#     delete_y = f_data$year
+#     # checar si no los elimine ya
+#     # sino, verificar con cual pierdo menos datos
+#     datos_paper_long()
+#   }
+# }
+# 
+# datos_paper_long %>% filter(variable == 'hdi', is.na(value))
+# datos_paper_long %>% filter(variable == 'hdi', is.na(value))
+# 
+# 
+# # quitar un pais es perder datos igual a la cantidad de años
+# # quitar un año es perder datos igual a la cantidad de paises
+
+
 vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
   # DT.ODA.OATL.CD and DT.ODA.OATL.KD faltan
   # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS tienen faltas
@@ -292,39 +338,16 @@ vis_dat(datos_paper %>%
                ))
 ```
 
-### Operador Diferencia
-
-De 2232 observaciones reducimos a 1260 (2002 hasta 2022) o a 1320 (2001 hasta 2022)
-
-Aplicar Operador diferencia
-
 ```{r}
-datos_model <- datos_paper %>% 
-        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB', 'SY'),
-               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2023)) %>%
+vis_dat(datos_paper %>% 
+        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB','SY', 
+                             'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS'),
+               year > 2001, year < 2019) %>%
         select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, 
-               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, all_of(gsub("_", ".", gob_indicators))
-               )
-
-datos_model <- datos_model %>% arrange(iso2c, year) %>% 
-        mutate(hdi_diff = hdi - dplyr::lag(hdi), 
-               NY.GDP.PCAP.CD_diff = NY.GDP.PCAP.CD - dplyr::lag(NY.GDP.PCAP.CD),
-               DT.ODA.ALLD.CD_diff = DT.ODA.ALLD.CD - dplyr::lag(DT.ODA.ALLD.CD),
-               DT.ODA.ODAT.PC.ZS_diff = DT.ODA.ODAT.PC.ZS - dplyr::lag(DT.ODA.ODAT.PC.ZS)) %>%
-        filter(!year %in% c(2001))
-
-vis_dat(datos_model)
-
+               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, POV, all_of(gsub("_", ".", gob_indicators)))
+)
+# 47 paises restantes dado que no tienen datos de pobreza 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS'
 ```
-
-### Promedio de Indices de Gobernanza
-```{r}
-datos_model <- datos_model %>%
-  mutate(GOV =  (CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST) / 6)
-
-vis_dat(datos_model)
-```
-
 
 ## Visualizacion de datos {.tabset .tabset-fade}
 
@@ -332,17 +355,39 @@ vis_dat(datos_model)
 
 Se revisara las relaciones entre las variables graficamente No se ve una relacion clara, hay tanto paises con punteos altos y bajos de GOB que tienen tanto HID altos o bajos Quiza puede verse una leve relacion de mayor punteo en GOB acompañado de mejor punteo den HDI Los datos de GPD si muestran una relacion positiva con el HDI visto en las graficas
 
+Filtros para modelo HDI
+
+```{r}
+v <- c('iso2c', 'year', 'hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff',
+       'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff', 'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST',
+       'VA.EST', 'GOV') #, 'GOV_diff', 'POV', 'POV_diff'
+delete_c <- c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB', 'SY')
+first_y <- 2002
+last_y <- 2022
+
+datos_model <- datos_paper %>% 
+  filter(!iso2c %in% delete_c, !year <  first_y, !year > last_y) %>%
+  select(all_of(v))
+
+vis_dat(datos_model)
+
+```
+
 #### HDI
 
 ```{r}
-my_plot  <- list()
+vd <- c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff')
+vi <- c('DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff')
 
-for (col in c('DT.ODA.ALLD.CD', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff', 
-              'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST')) {
-  my_plot[[col]] <- plot_ly(x = datos_model[[col]], y = datos_model[['hdi']], type = 'scatter', mode = 'markers', name = col)  
+for (vd_ in vd) {
+  my_plot  <- list()
+  for (vi_ in vi){
+    my_plot[[vi_]] <- plot_ly(x = datos_model[[vi_]], y = datos_model[[vd_]], type = 'scatter', mode = 'markers', name = vi_)
+    my_plot[[vi_]]
+  }
+  subplot(my_plot, nrows = 2, margin = 0.05) %>% layout(title = paste(vd_, 'vs', vi_))
 }
-subplot(my_plot[1:4], nrows = 2, margin = 0.05) %>% layout(title = 'HDI vs ODA')
-subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'HDI vs GOB')
+
 ```
 
 #### HDI diff
@@ -407,6 +452,8 @@ datos_model %>% filter(iso2c == 'AF') %>% plot_ly(x = ~year) %>%
 
 ## Modelos Regresion Lineal {.tabset .tabset-fade}
 
+
+
 Probando modelos sencillos, regresion lineal, Minimos cuadrados, datos panel, HDI o GDP o sus differecias
 
 ```{r}
@@ -421,6 +468,9 @@ for (vd_ in vd) {
     #f <- paste(vd_, '~', vi_, '+ CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW')
     #f <- paste(vd_, '~', vi_, '+ CC.PER.RNK + GE.PER.RNK + PV.PER.RNK + RQ.PER.RNK + RL.PER.RNK + VA.PER.RNK + SP.POP.GROW')
     f <- paste(vd_, '~', vi_, '+ GOV + SP.POP.GROW')
+    cat(paste("### ",key,"\n\n"))
+    print(key)
+    cat('\n\n')
     models[[key]] <- lm(f, data=datos_model)
   }
 }
