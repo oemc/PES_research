@@ -234,38 +234,66 @@ datos_paper <- datos_paper %>% arrange(iso2c, year) %>%
                POV_diff = case_when(iso2c == dplyr::lag(iso2c) ~ POV - dplyr::lag(POV), TRUE ~ NA_real_))
 ```
 
+# Datos en formato long
+```{r}
+datos_paper_long <- datos_paper %>% melt(id.vars = c('iso2c','year'))
+```
+
 Revisar que datos estan como faltantes
 
 #### ODA
 
 ```{r}
-# # Vector de variables de interes
-# v = c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CN', 'NY.GDP.PCAP.CD_diff', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff',
-#       'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff', 'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST',
-#       'VA.EST', 'GOV', 'GOV_diff', 'POV', 'POV_diff'
-# )
-# 
-# # Datos en formato long
-# datos_paper_long <- datos_paper %>% melt(id.vars = c('iso2c','year'))
-# 
-# # Datos faltantes
-# for (v_ in v) {
-#   for (f_data in datos_paper_long %>% filter(variable == v_, is.na(value))) {
-#     # candidatos a eliminar
-#     delete_c = f_data$iso2c
-#     delete_y = f_data$year
-#     # checar si no los elimine ya
-#     # sino, verificar con cual pierdo menos datos
-#     datos_paper_long()
-#   }
-# }
-# 
-# datos_paper_long %>% filter(variable == 'hdi', is.na(value))
-# datos_paper_long %>% filter(variable == 'hdi', is.na(value))
-# 
-# 
-# # quitar un pais es perder datos igual a la cantidad de años
-# # quitar un año es perder datos igual a la cantidad de paises
+# Vector de variables de interes
+v = c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff',
+      'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff', 'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST',
+      'VA.EST', 'GOV', 'GOV_diff' #, 'POV', 'POV_diff'
+)
+
+delete_c = c()
+delete_y = c()
+
+# Datos faltantes
+for (v_ in v) {
+  temp <- datos_paper_long %>% filter(variable == v_, is.na(value))
+  if (temp %>% nrow() == 0) {
+    next
+  }
+  for (i in 1:nrow(temp)) {
+    if (temp[i,]$iso2c %in% delete_c) {
+      next
+    }
+    if (temp[i,]$year %in% delete_y) {
+      next
+    }
+    na_for_country = temp %>% filter(iso2c == temp[i,]$iso2c) %>% nrow()
+    na_for_year    = temp %>% filter(year  == temp[i,]$year)  %>% nrow()
+    print(paste(i, v_))
+    if (na_for_country > na_for_year) {
+      print(paste('se excluye:',temp[i,]$iso2c))
+      delete_c = c(delete_c, temp[i,]$iso2c)
+    }
+    else {
+      print(paste('se excluye:',temp[i,]$year))
+      delete_y = c(delete_y, temp[i,]$year)
+    }
+  }
+}
+
+temp <- datos_paper_long %>% filter(variable %in% v, is.na(value))
+while (temp %>% nrow() > 0) {
+  candidato_country <- temp %>% group_by(iso2c) %>% summarise(count = n()) %>% slice_max(count) %>% slice(1)
+  candidato_year <- temp %>% group_by(year) %>% summarise(count = n()) %>% slice_max(count) %>% slice(1)
+  if (candidato_country$count > candidato_year$count) {
+    delete_c = c(delete_c, candidato_country$iso2c)
+    temp <- temp %>% filter(!iso2c == candidato_country$iso2c)
+  }
+  else {
+    delete_y = c(delete_y, candidato_year$year)
+    temp <- temp %>% filter(!year == candidato_year$year)
+  }
+}
+
 
 
 vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
@@ -369,7 +397,16 @@ datos_model <- datos_paper %>%
   filter(!iso2c %in% delete_c, !year <  first_y, !year > last_y) %>%
   select(all_of(v))
 
+datos_model
 vis_dat(datos_model)
+
+datos_paper %>% 
+  filter(!iso2c %in% delete_c, !year %in% delete_y) %>%
+  select(all_of(v))
+
+vis_dat(datos_paper %>% 
+  filter(!iso2c %in% delete_c, !year %in% delete_y) %>%
+  select(all_of(v)))
 
 ```
 
