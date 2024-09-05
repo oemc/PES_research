@@ -43,7 +43,8 @@ library(visdat)    # visualizacion de datos como graficos
 library(plotly)    # graficos
 library(purrr)     # funcion map
 library(plm)       # modelos lineales para datos panel
-library(car)       # test y utilidaddes para modelos
+library(car)       # test y utilidades para modelos
+library(htmltools) # para imprimir graficos en html
 ```
 
 ### Obtener datos
@@ -66,7 +67,7 @@ Listado de paises a analisar:
 my_countries <- country_class %>%
   filter(!is.na(Region), `Income group` %in% c('Low income', 'Lower middle income')) %>%
   select(Code)
-my_countries
+my_countries %>% merge(country_class) %>% select(Code, Economy)
 ```
 
 Hacer la respectiva asociacion de nombres iso3c e iso2c
@@ -208,6 +209,21 @@ Poverty <- Poverty %>%
 
 ```
 
+### cargar Political Civil Liberties
+```{r}
+PC_LIB <- read_csv("political-civil-liberties-index.csv")
+names(PC_LIB) <- c("country", "iso3c", "year", "value")
+
+PC_LIB %>%
+  filter(year > 1994) %>%
+  merge(WDI_data$country, all.x = TRUE) %>% filter(is.na(iso2c))
+
+# %>%
+#   mutate(indicator = 'POV') %>%
+#   merge(my_countries) %>%
+#   select(indicator, iso2c, year, value)
+```
+
 
 ### Manipulacion de Datos
 
@@ -234,68 +250,9 @@ datos_paper <- datos_paper %>% arrange(iso2c, year) %>%
                POV_diff = case_when(iso2c == dplyr::lag(iso2c) ~ POV - dplyr::lag(POV), TRUE ~ NA_real_))
 ```
 
-# Datos en formato long
-```{r}
-datos_paper_long <- datos_paper %>% melt(id.vars = c('iso2c','year'))
-```
-
-Revisar que datos estan como faltantes
-
 #### ODA
 
 ```{r}
-# Vector de variables de interes
-v = c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff',
-      'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff', 'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST',
-      'VA.EST', 'GOV', 'GOV_diff' #, 'POV', 'POV_diff'
-)
-
-delete_c = c()
-delete_y = c()
-
-# Datos faltantes
-for (v_ in v) {
-  temp <- datos_paper_long %>% filter(variable == v_, is.na(value))
-  if (temp %>% nrow() == 0) {
-    next
-  }
-  for (i in 1:nrow(temp)) {
-    if (temp[i,]$iso2c %in% delete_c) {
-      next
-    }
-    if (temp[i,]$year %in% delete_y) {
-      next
-    }
-    na_for_country = temp %>% filter(iso2c == temp[i,]$iso2c) %>% nrow()
-    na_for_year    = temp %>% filter(year  == temp[i,]$year)  %>% nrow()
-    print(paste(i, v_))
-    if (na_for_country > na_for_year) {
-      print(paste('se excluye:',temp[i,]$iso2c))
-      delete_c = c(delete_c, temp[i,]$iso2c)
-    }
-    else {
-      print(paste('se excluye:',temp[i,]$year))
-      delete_y = c(delete_y, temp[i,]$year)
-    }
-  }
-}
-
-temp <- datos_paper_long %>% filter(variable %in% v, is.na(value))
-while (temp %>% nrow() > 0) {
-  candidato_country <- temp %>% group_by(iso2c) %>% summarise(count = n()) %>% slice_max(count) %>% slice(1)
-  candidato_year <- temp %>% group_by(year) %>% summarise(count = n()) %>% slice_max(count) %>% slice(1)
-  if (candidato_country$count > candidato_year$count) {
-    delete_c = c(delete_c, candidato_country$iso2c)
-    temp <- temp %>% filter(!iso2c == candidato_country$iso2c)
-  }
-  else {
-    delete_y = c(delete_y, candidato_year$year)
-    temp <- temp %>% filter(!year == candidato_year$year)
-  }
-}
-
-
-
 vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
   # DT.ODA.OATL.CD and DT.ODA.OATL.KD faltan
   # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS tienen faltas
@@ -338,379 +295,68 @@ vis_dat(datos_paper %>% arrange(iso2c) %>% select(SP.POP.GROW))
 ```{r}
 vis_dat(datos_paper %>% arrange(iso2c) %>% select(POV)) 
   # Hay muchos paises sin datos
-
 ```
 
-#### 2001 - 2022
+## Modelos {.tabset .tabset-fade}
 
-Tomando en cuenta los datos faltantes, hacer filtros para seleccionar una muestra mas pequeña
-
-```{r}
-vis_dat(datos_paper %>% 
-        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB','SY'),
-               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2023)) %>%
-        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, 
-               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, POV, all_of(gsub("_", ".", gob_indicators)), 
-               ))
-```
-
-
-#### 2002 - 2002
+### Filtros para modelo
 
 ```{r}
-vis_dat(datos_paper %>% 
-        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB','SY'),
-               !year %in% c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2023)) %>%
-        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, 
-               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, POV, all_of(gsub("_", ".", gob_indicators)) 
-               ))
-```
+# variables de etiqueta
+ve <- c('iso2c', 'year')
+# variables depndientes
+vd <- c('hdi')                #'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff'
+# variables independientes
+vi <- c('DT.ODA.ODAT.PC.ZS')  #'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff'
+# variables de control
+vc <- c('NY.GDP.PCAP.CD', 'SP.POP.GROW', 'GOV') 
+#'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV_diff', 'POV', 'POV_diff'
 
-```{r}
-vis_dat(datos_paper %>% 
-        filter(!iso2c %in% c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB','SY', 
-                             'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS'),
-               year > 2001, year < 2019) %>%
-        select(iso2c, year, hdi, DT.ODA.ALLD.CD, DT.ODA.ALLD.KD, DT.ODA.ODAT.CD, DT.ODA.ODAT.KD, DT.ODA.ODAT.PC.ZS, 
-               NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, SP.POP.GROW, POV, all_of(gsub("_", ".", gob_indicators)))
-)
-# 47 paises restantes dado que no tienen datos de pobreza 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS'
-```
 
-## Visualizacion de datos {.tabset .tabset-fade}
-
-### Relaciones {.tabset .tabset-fade}
-
-Se revisara las relaciones entre las variables graficamente No se ve una relacion clara, hay tanto paises con punteos altos y bajos de GOB que tienen tanto HID altos o bajos Quiza puede verse una leve relacion de mayor punteo en GOB acompañado de mejor punteo den HDI Los datos de GPD si muestran una relacion positiva con el HDI visto en las graficas
-
-Filtros para modelo HDI
-
-```{r}
-v <- c('iso2c', 'year', 'hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff',
-       'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff', 'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST',
-       'VA.EST', 'GOV') #, 'GOV_diff', 'POV', 'POV_diff'
+# paises sin datos
 delete_c <- c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB', 'SY')
+# años sin datos
 first_y <- 2002
 last_y <- 2022
 
 datos_model <- datos_paper %>% 
   filter(!iso2c %in% delete_c, !year <  first_y, !year > last_y) %>%
-  select(all_of(v))
+  select(all_of(c(ve, vd, vi, vc)))
+
+f <- paste(vd, '~', vi, '+', paste(vc, collapse = ' + '))
 
 datos_model
 vis_dat(datos_model)
-
-datos_paper %>% 
-  filter(!iso2c %in% delete_c, !year %in% delete_y) %>%
-  select(all_of(v))
-
-vis_dat(datos_paper %>% 
-  filter(!iso2c %in% delete_c, !year %in% delete_y) %>%
-  select(all_of(v)))
-
 ```
 
-#### HDI
+### Relaciones
+
+Se revisara las relaciones entre las variables graficamente 
 
 ```{r}
-vd <- c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff')
-vi <- c('DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff')
+my_plot = list()
 
 for (vd_ in vd) {
-  my_plot  <- list()
-  for (vi_ in vi){
-    my_plot[[vi_]] <- plot_ly(x = datos_model[[vi_]], y = datos_model[[vd_]], type = 'scatter', mode = 'markers', name = vi_)
-    my_plot[[vi_]]
-  }
-  subplot(my_plot, nrows = 2, margin = 0.05) %>% layout(title = paste(vd_, 'vs', vi_))
-}
-
-```
-
-#### HDI diff
-
-```{r}
-my_plot  <- list()
-
-for (col in c('DT.ODA.ALLD.CD', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff', 
-              'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST')) {
-  my_plot[[col]] <- plot_ly(x = datos_model[[col]], y = datos_model[['hdi_diff']], type = 'scatter', mode = 'markers', name = col)  
-}
-subplot(my_plot[1:4], nrows = 2, margin = 0.05) %>% layout(title = 'HDI diff vs ODA')
-subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'HDI diff vs GOB')
-```
-
-#### GPD.PC
-
-```{r}
-my_plot  <- list()
-for (col in c('DT.ODA.ALLD.CD', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff', 
-              'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST')) {
-  my_plot[[col]] <- plot_ly(x = datos_model[[col]], y = datos_model[['NY.GDP.PCAP.CD']], 
-                            type = 'scatter', mode = 'markers', name = col)  
-}
-subplot(my_plot[1:4], nrows = 2, margin = 0.05) %>% layout(title = 'GDP.PC vs ODA')
-subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'GDP.PC vs GOB')
-
-```
-
-
-#### GPD.PC diff
-
-```{r}
-my_plot  <- list()
-for (col in c('DT.ODA.ALLD.CD', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff', 
-              'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST')) {
-  my_plot[[col]] <- plot_ly(x = datos_model[[col]], y = datos_model[['NY.GDP.PCAP.CD_diff']], type = 'scatter', mode = 'markers', name = col)  
-}
-subplot(my_plot[1:4], nrows = 2, margin = 0.05) %>% layout(title = 'GDP.PC diff vs ODA')
-subplot(my_plot[5:10], nrows = 2, margin = 0.05) %>% layout(title = 'GDP.PC diff vs GOB')
-
-```
-
-### Visualizacion de Datos historia
-
-Se realizara el mismo proceso con el crecimiento o decrecimiento de HDI anual Viendo la historia de las variables en el tiempo (por pais)
-
-```{r}
-datos_model %>% filter(iso2c == 'AF') %>% plot_ly(x = ~year) %>% 
-  add_trace(y = ~hdi, type = 'scatter', mode = 'lines+markers', name = 'hdi') %>% 
-  add_trace(y = ~NY.GDP.PCAP.CD / 1000, type = 'scatter', mode = 'lines+markers', name = 'gdp.pc') %>% 
-  add_trace(y = ~DT.ODA.ALLD.CD / 10000000000, type = 'scatter', mode = 'lines+markers', name = 'ODA.ALL')  %>% 
-  add_trace(y = ~DT.ODA.ODAT.PC.ZS / 1000, type = 'scatter', mode = 'lines+markers', name = 'ODA.PC')  %>% 
-  add_trace(y = ~CC.EST, type = 'scatter', mode = 'lines+markers', name = 'CC') %>% 
-  add_trace(y = ~GE.EST, type = 'scatter', mode = 'lines+markers', name = 'GE')  %>% 
-  add_trace(y = ~PV.EST, type = 'scatter', mode = 'lines+markers', name = 'PV')  %>% 
-  add_trace(y = ~RQ.EST, type = 'scatter', mode = 'lines+markers', name = 'RQ')  %>% 
-  add_trace(y = ~RL.EST, type = 'scatter', mode = 'lines+markers', name = 'RL')  %>% 
-  add_trace(y = ~VA.EST, type = 'scatter', mode = 'lines+markers', name = 'VA')
-```
-
-
-## Modelos Regresion Lineal {.tabset .tabset-fade}
-
-
-
-Probando modelos sencillos, regresion lineal, Minimos cuadrados, datos panel, HDI o GDP o sus differecias
-
-```{r}
-vd <- c('hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff')
-vi <- c('DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ODAT.PC.ZS_diff')
-models <- list()
-keys <- character()
-for (vd_ in vd) {
-  for (vi_ in vi) {
-    key <- paste(vd_, vi_, sep = "~")
-    keys <- c(keys, key)
-    #f <- paste(vd_, '~', vi_, '+ CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW')
-    #f <- paste(vd_, '~', vi_, '+ CC.PER.RNK + GE.PER.RNK + PV.PER.RNK + RQ.PER.RNK + RL.PER.RNK + VA.PER.RNK + SP.POP.GROW')
-    f <- paste(vd_, '~', vi_, '+ GOV + SP.POP.GROW')
-    cat(paste("### ",key,"\n\n"))
-    print(key)
-    cat('\n\n')
-    models[[key]] <- lm(f, data=datos_model)
+  for (vi_ in c(vi, vc)){
+    my_plot[[paste(vd_,vi_)]] <- plot_ly(x = datos_model[[vi_]], y = datos_model[[vd_]], type = 'scatter', mode = 'markers', name = vi_)
   }
 }
+
+subplot(my_plot, nrows = 2, margin = 0.05)  %>% layout(title = vd)
+
 ```
-
-### HDI {.tabset .tabset-fade}
-
-#### ODA.ALL
-
-HDI = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
+### Modelo OLS
 
 ```{r}
-summary(models[[keys[1]]])
-# Todas las variables son significativas al 99% excepto Regulatory Quality
+print(f)
+summary(lm(f, data=datos_model))
 ```
 
-
-#### ODA.ALL_diff
-
-HDI = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
+### Modelos Fixed Effect
 
 ```{r}
-summary(models[[keys[2]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL_diff y Regulatory Quality
-```
+print(f)
 
-
-#### ODA.PC
-
-HDI = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[3]]])
-# Todas las variables son significativas al 99% excepto Regulatory Quality
-```
-
-
-#### ODA.PC_diff
-
-HDI = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[4]]])
-# Todas las variables son significativas al 99% excepto  ODA.ALL_diff y Regulatory Quality
-```
- 
-
-### HDI_diff {.tabset .tabset-fade}
-
-#### ODA.ALL
-
-HDI_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[5]]])
-# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption y Rule of Law
-```
-
-
-#### ODA.ALL_diff
-
-HDI_diff = ODA.ALL_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[6]]])
-# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
-```
-
-
-#### ODA.PC
-
-HDI_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[7]]])
-# Todas las variables son significativas al 95% excepto Rule of Law y Voice and Accountability
-```
- 
-
-#### ODA.PC_diff
-
-HDI_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[8]]])
-# Todas las variables son significativas al 95% excepto Control of Corruption y Voice and Accountability
-```
-
-### GPD.PC {.tabset .tabset-fade}
-
-#### ODA.ALL
-
-GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[9]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Rule of Law
-```
-
-#### ODA.ALL_diff
-
-GPD.PC = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[10]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
-```
-
-#### ODA.PC
-
-GPD.PC = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[11]]])
-# Todas las variables son significativas al 99% excepto Rule of Law
-```
-
-#### ODA.PC_diff
-
-GPD.PC = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[12]]])
-# Todas las variables son significativas al 99% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Rule of Law
-```
-
-### GPD.PC_diff {.tabset .tabset-fade}
-
-#### ODA.ALL
-
-GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[13]]])
-# Todas las variables son significativas al 95% excepto ODA.ALL, Control of Corruption, Regulatory Quality y Voice and Accountability
-```
-
-#### ODA.ALL_diff
-
-GPD.PC_diff = ODA.ALL + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[14]]])
-# Todas las variables son significativas al 95% excepto ODA.ALL_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
-```
-
-#### ODA.PC
-
-GPD.PC_diff = ODA.PC + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[15]]])
-# Todas las variables son significativas al 95% excepto ODA.PC, Control of Corruption, Political Stability, Regulatory Quality y Voice and Accountability
-```
-
-#### ODA.PC_diff
-
-GPD.PC_diff = ODA.PC_diff + CC + GE + PV + RQ + RL + VA + POP.GROW
-
-```{r}
-summary(models[[keys[16]]])
-# Todas las variables son significativas al 95% excepto ODA.PC_diff, Control of Corruption, Regulatory Quality y Voice and Accountability
-```
-
-
-## Modelos Efectos fijos {.tabset .tabset-fade}
-
-### HDI \~ ODA.ALL
-
-```{r}
-plm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
-    index = c("iso2c", "year"), model = "within")
-
-# summary(lm(hdi ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
-# Corruption Control, Government Effectiveness, Political Stability y Voice and Accountability no son significativas
-```
-
-### HDI \~ ODA.PC
-
-```{r}
-plm(hdi ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
-    index = c("iso2c", "year"), model = "within")
-
-#summary(lm(hdi ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
-# Corruption Control, Government Effectiveness y Voice and Accountability no son significativas
-```
-
-### GDP.PC \~ ODA.ALL
-
-```{r}
-plm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
-    index = c("iso2c", "year"), model = "within")
-
-#summary(lm(NY.GDP.PCAP.CD ~ DT.ODA.ALLD.CD + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
-# Intercepto, Corruption Control, Regulatory Quality, Rule of Law, Voice and Accountability y Population Growth no son significativas
-```
-
-### GDP.PC \~ ODA.PC
-
-```{r}
-plm(NY.GDP.PCAP.CD ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW, data=datos_model,
-    index = c("iso2c", "year"), model = "within")
-
-#summary(lm(NY.GDP.PCAP.CD ~ DT.ODA.ODAT.PC.ZS + CC.EST + GE.EST + PV.EST + RQ.EST + RL.EST + VA.EST + SP.POP.GROW + iso2c, data=datos_model))
-# Corruption Control, Regulatory Quality, Rule of Law y Voice and Accountability no son significativas
+summary(plm(f, data=datos_model, index = ve, model = "within"))
+#summary(lm(paste(f, '+ iso2c'), data=datos_model))
 ```
