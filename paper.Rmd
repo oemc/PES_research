@@ -212,16 +212,12 @@ Poverty <- Poverty %>%
 ### cargar Political Civil Liberties
 ```{r}
 PC_LIB <- read_csv("political-civil-liberties-index.csv")
-names(PC_LIB) <- c("country", "iso3c", "year", "value")
 
-PC_LIB %>%
-  filter(year > 1994) %>%
-  merge(WDI_data$country, all.x = TRUE) %>% filter(is.na(iso2c))
-
-# %>%
-#   mutate(indicator = 'POV') %>%
-#   merge(my_countries) %>%
-#   select(indicator, iso2c, year, value)
+PC_LIB <- PC_LIB %>%
+  filter(year > 1994, !is.na(Code)) %>%
+  merge(my_countries) %>%
+  mutate(indicator = 'POL.CIV.LIB') %>%
+  select(indicator, iso2c, year, value)
 ```
 
 
@@ -229,7 +225,7 @@ PC_LIB %>%
 
 #### Transformar datos a la estructura wide
 ```{r}
-datos_paper <- rbind(datos_WB, datos_HDI %>% select(indicator, iso2c, year, value), Poverty) %>%
+datos_paper <- rbind(datos_WB, datos_HDI %>% select(indicator, iso2c, year, value), Poverty, PC_LIB) %>%
   pivot_wider(names_from = indicator, values_from = value)
 ```
 
@@ -250,7 +246,17 @@ datos_paper <- datos_paper %>% arrange(iso2c, year) %>%
                POV_diff = case_when(iso2c == dplyr::lag(iso2c) ~ POV - dplyr::lag(POV), TRUE ~ NA_real_))
 ```
 
-#### ODA
+#### Clasificaciones dicotomicas
+```{r}
+datos_paper <- datos_paper %>% mutate(GOV_GOOD = case_when(GOV >= 0 ~ 1, TRUE ~ 0))
+plot_ly(data = datos_paper %>% filter(!is.na(GOV)), y = ~ GOV, type = 'scatter', mode = 'markers') %>%
+  layout(title = 'Indice promedio de gobernanza', xaxis = list(title = 'Registros'))
+```
+
+
+#### Visualizacion de Datos  {.tabset .tabset-fade}
+
+##### ODA
 
 ```{r}
 vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
@@ -259,7 +265,7 @@ vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators))))
   # Un par de ocurrencias pais-año que faltan datos
 ```
 
-#### GDP
+##### GDP
 
 ```{r}
 vis_dat(datos_paper %>% select(NY.GDP.PCAP.CN, NY.GDP.PCAP.CD)) 
@@ -267,14 +273,14 @@ vis_dat(datos_paper %>% select(NY.GDP.PCAP.CN, NY.GDP.PCAP.CD))
   # 'SY'falta PIB per Capita en 2022, 2023 sin datos algunos paises
 ```
 
-#### GOV
+##### GOV
 
 ```{r}
 vis_dat(datos_paper %>% arrange(year) %>% select(all_of(gsub("_", ".", gob_indicators)))) 
   # Datos del 2000 para atras tienen espacios faltantes 
 ```
 
-#### HDI
+##### HDI
 
 ```{r}
 vis_dat(datos_paper %>% select(all_of(hdi_indicators))) 
@@ -282,19 +288,25 @@ vis_dat(datos_paper %>% select(all_of(hdi_indicators)))
   # hdi faltante en multiples ocaciones
 ```
 
-#### POP.GROW
+##### POP.GROW
 
 ```{r}
 vis_dat(datos_paper %>% arrange(iso2c) %>% select(SP.POP.GROW)) 
   # ZW no tiene datos de crecimiento poblacional
-
 ```
 
-#### POV
+##### POV
 
 ```{r}
 vis_dat(datos_paper %>% arrange(iso2c) %>% select(POV)) 
-  # Hay muchos paises sin datos
+# Hay muchos paises sin datos
+```
+
+##### POLITICAL CIVIL LIBERTY
+
+```{r}
+vis_dat(datos_paper %>% arrange(iso2c) %>% select(POL.CIV.LIB)) 
+  # KI	MR	SD	WS  son paises sin datos para estos años
 ```
 
 ## Modelos {.tabset .tabset-fade}
@@ -305,25 +317,26 @@ vis_dat(datos_paper %>% arrange(iso2c) %>% select(POV))
 # variables de etiqueta
 ve <- c('iso2c', 'year')
 # variables depndientes
-vd <- c('hdi')                #'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff'
+vd <- c('hdi')                # 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff'
 # variables independientes
-vi <- c('DT.ODA.ODAT.PC.ZS')  #'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff'
+vi <- c('DT.ODA.ODAT.PC.ZS')  # 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff'
 # variables de control
-vc <- c('NY.GDP.PCAP.CD', 'SP.POP.GROW', 'GOV') 
-#'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV_diff', 'POV', 'POV_diff'
-
+vc <- c('NY.GDP.PCAP.CD', 'SP.POP.GROW', 'GOV') # 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV_diff', 'POV', 'POV_diff', 'POL.CIV.LIB'
+# variables interactivas
+vint <- c() # 'GOV_GOOD'
 
 # paises sin datos
 delete_c <- c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB', 'SY')
+          #, 'KI',	'MR',	'SD',	'WS' Si se usa POL.CIV.LIB
 # años sin datos
 first_y <- 2002
 last_y <- 2022
 
 datos_model <- datos_paper %>% 
   filter(!iso2c %in% delete_c, !year <  first_y, !year > last_y) %>%
-  select(all_of(c(ve, vd, vi, vc)))
+  select(all_of(c(ve, vd, vi, vc, vint)))
 
-f <- paste(vd, '~', vi, '+', paste(vc, collapse = ' + '))
+f <- paste(vd, '~', case_when(length(vint) > 0 ~ paste(vi, vint, sep = '*'), TRUE ~ vi), '+', paste(vc, collapse = ' + '))
 
 datos_model
 vis_dat(datos_model)
@@ -338,7 +351,13 @@ my_plot = list()
 
 for (vd_ in vd) {
   for (vi_ in c(vi, vc)){
-    my_plot[[paste(vd_,vi_)]] <- plot_ly(x = datos_model[[vi_]], y = datos_model[[vd_]], type = 'scatter', mode = 'markers', name = vi_)
+    fit <- lm(paste(vd_, '~', vi_) ,data = datos_model)
+    my_plot[[paste(vd_,vi_)]] <- plot_ly(x = datos_model[[vi_]], 
+                                         y = datos_model[[vd_]], 
+                                         type = 'scatter', 
+                                         mode = 'markers', 
+                                         name = vi_) %>%
+      add_lines(x = datos_model[[vi_]], fitted(fit), name = paste("trace", vi_))
   }
 }
 
@@ -349,14 +368,32 @@ subplot(my_plot, nrows = 2, margin = 0.05)  %>% layout(title = vd)
 
 ```{r}
 print(f)
-summary(lm(f, data=datos_model))
+model_ols <- lm(f, data=datos_model)
+summary(model_ols)
+residualPlots(model_ols)
+plot(model_ols)
 ```
 
-### Modelos Fixed Effect
+### Modelo Fixed Effects
 
 ```{r}
 print(f)
-
-summary(plm(f, data=datos_model, index = ve, model = "within"))
+model_fe <- plm(f, data=datos_model, index = ve, model = "within")
+summary(model_fe)
 #summary(lm(paste(f, '+ iso2c'), data=datos_model))
+```
+
+### Modelo Random Effects
+
+```{r}
+print(f)
+model_re <- plm(f, data=datos_model, index = ve, model = "random")
+summary(model_re)
+```
+
+### Hausman Test
+
+```{r}
+print(f)
+phtest(model_fe, model_re)
 ```
