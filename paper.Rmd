@@ -45,6 +45,7 @@ library(purrr)     # funcion map
 library(plm)       # modelos lineales para datos panel
 library(car)       # test y utilidades para modelos
 library(htmltools) # para imprimir graficos en html
+library(urca)      # Unit root test
 ```
 
 ### Obtener datos
@@ -327,6 +328,104 @@ vis_dat(datos_paper %>% arrange(iso2c) %>% select(POL.CIV.LIB))
   # KI	MR	SD	WS  son paises sin datos para estos años
 ```
 
+## Tablas informativas
+```{r}
+temp <- datos_paper %>% 
+   filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+   merge(my_countries) %>%
+   merge(country_class) %>%
+   group_by(`Income group`) %>%
+   summarise('2002 - 2022' = sum(DT.ODA.ALLD.CD))
+
+temp
+
+plot_ly(temp %>% 
+          mutate(`Income group` = case_when(`Income group` == 'Low income' ~ 'Ingresos Bajos',
+                                            `Income group` == 'Lower middle income' ~ 'Ingresos Medios-bajos')),
+        labels = ~`Income group`, values = ~`2002 - 2022`, type = 'pie', textinfo = 'label+percent') %>%
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total 2002 - 2022',
+         plot_bgcolor = "#e5ecf6")
+
+########################################################################
+
+temp <- datos_paper %>% 
+  mutate(y_range = case_when(year < 2007 ~ '2002 - 2006',
+                             year < 2012 ~ '2007 - 2011',
+                             year < 2017 ~ '2012 - 2016',
+                             TRUE ~ '2017 - 2022')) %>%
+  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+  merge(my_countries) %>%
+  merge(country_class) %>%
+  group_by(`Income group`, y_range) %>%
+  summarise(sum=sum(DT.ODA.ALLD.CD), .groups = "drop")
+
+temp %>% pivot_wider(names_from = y_range, values_from = sum)
+
+plot_ly(temp %>% pivot_wider(names_from = `Income group`, values_from = sum), 
+        x = ~y_range, y = ~`Lower middle income`, name = 'Ingresos Medios-bajos', type = 'bar') %>% 
+  add_trace(y = ~`Low income`, name = 'Ingresos Bajos') %>% 
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total',
+         yaxis = list(title = 'Dolares Actuales'), xaxis = list(title = 'Periodo'), barmode = 'group')
+
+########################################################################
+
+temp <- datos_paper %>% 
+  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+  merge(my_countries) %>%
+  merge(country_class) %>%
+  group_by(Region) %>%
+  summarise('2002 - 2022' = sum(DT.ODA.ALLD.CD))
+
+temp
+
+plot_ly(temp, labels = ~Region, values = ~`2002 - 2022`, type = 'pie', textinfo = 'label+percent') %>%
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total 2002 - 2022',
+         plot_bgcolor = "#e5ecf6")
+
+########################################################################
+
+temp <- datos_paper %>% 
+  mutate(y_range = case_when(year < 2007 ~ '2002 - 2006',
+                             year < 2012 ~ '2007 - 2011',
+                             year < 2017 ~ '2012 - 2016',
+                             TRUE ~ '2017 - 2022')) %>%
+  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+  merge(my_countries) %>%
+  merge(country_class) %>%
+  group_by(Region, y_range) %>%
+  summarise(sum=sum(DT.ODA.ALLD.CD), .groups = "drop") 
+
+temp %>%
+  pivot_wider(names_from = y_range, values_from = sum)
+
+plot_ly(temp %>% pivot_wider(names_from = Region, values_from = sum), 
+        x = ~y_range, y = ~`Sub-Saharan Africa`, name = 'Sub-Saharan Africa', type = 'bar') %>% 
+  add_trace(y = ~`East Asia & Pacific`, name = 'East Asia & Pacific') %>% 
+  add_trace(y = ~`Middle East & North Africa`, name = 'Middle East & North Africa') %>% 
+  add_trace(y = ~`South Asia`, name = 'South Asia') %>% 
+  add_trace(y = ~`Latin America & Caribbean`, name = 'Latin America & Caribbean') %>% 
+  add_trace(y = ~`Europe & Central Asia`, name = 'Europe & Central Asia') %>% 
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total',
+         yaxis = list(title = 'Dolares Actuales'), xaxis = list(title = 'Periodo'), barmode = 'group')
+
+########################################################################
+
+temp <- datos_paper %>% 
+  mutate(y_range = case_when(year < 2007 ~ '2002 - 2006',
+                             year < 2012 ~ '2007 - 2011',
+                             year < 2017 ~ '2012 - 2016',
+                             TRUE ~ '2017 - 2022')) %>%
+  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS', 'KP')) %>%
+  merge(my_countries) %>%
+  merge(country_class)
+
+plot_ly(y = temp %>% filter(year == 2022, `Income group` == 'Lower middle income') %>% .$hdi, 
+        name = 'Ingresos Medios-bajos', type = "box") %>%
+  add_trace(y = temp %>% filter(year == 2022, `Income group` == 'Low income') %>% .$hdi, name = 'Ingresos Bajos')
+
+```
+
+
 ## Modelos {.tabset .tabset-fade}
 
 ### Filtros para modelo
@@ -335,7 +434,7 @@ vis_dat(datos_paper %>% arrange(iso2c) %>% select(POL.CIV.LIB))
 # variables de etiqueta
 ve <- c('iso2c', 'year')
 # variables depndientes
-vd <- c('hdi')                
+vd <- c('NY.GDP.PCAP.CD')                
                # 'hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff', 'POV', 'POV_diff',
 
 # variables independientes
@@ -344,10 +443,7 @@ vi <- c('DT.ODA.ODAT.PC.ZS')
                # 'DT.ODA.ALLD.CD:LOG'
 
 # variables de control
-vc <- c('NY.GDP.PCAP.CD',
-        'GOV',
-        'SP.POP.GROW',
-        'DT.ODA.ODAT.PC.ZS_2') 
+vc <- c('GOV') 
                #  'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV', 'GOV_diff'
                #  'NY.GDP.PCAP.CD', 'POL.CIV.LIB', 'DT.ODA.ODAT.PC.ZS_2', 'DT.ODA.ALLD.CD_2', 'DT.ODA.ALLD.CD_LOG_2'
 
@@ -440,10 +536,44 @@ summary(model_re)
 print(f)
 phtest(model_fe, model_re)
 ```
+### Unit Root Test
+```{r}
+df=ur.df(datos_model  %>% filter(iso2c == 'AO') %>% .[[vi]],type="none",lags=0)
+df
+print('La serie es estacionaria si el valor del estadistico de prueba excede estos valores al 99%, 95% y 90% respectivamente')
+qnorm(c(.01,.05,.1)/2)
+
+adf.test(datos_model[[vi]], k= 0)
+
+y <- data.frame(split(datos_model[[vi]], datos_model$iso2c)) # individuals in columns
+
+purtest(y, pmax = 4, exo = "intercept", test = "madwu")
+```
+### Cross-Sectional Dependance
+```{r}
+pcdtest(model_fe, test = c("lm"))
+pcdtest(model_fe, test = c("cd"))
+```
+### Serial Correlation
+```{r}
+pbgtest(model_fe)
+```
+### Homoskedasticity
+```{r}
+bptest(hdi ~ DT.ODA.ODAT.PC.ZS*GOV_GOOD + NY.GDP.PCAP.CD + GOV + SP.POP.GROW, data = datos_model, studentize = F)
+```
+
+### Controlling Heteroskedasticity
+```{r}
+coeftest(model_fe)
+
+coeftest(model_fe, vcovHC(model_fe, type = "HC3"))
+```
+
 
 # Guardar Data
 ```{r}
-save(f, delete_c, first_y, last_y, my_plot, model_ols, model_fe, model_re, file = "HID_ODAPCGOVGOOD_GDPPC_GOV_GROW.RData")
+save(f, delete_c, first_y, last_y, my_plot, model_ols, model_fe, model_re, file = "GDPPC_ODAPCGOVGOOD_GOV.RData")
 ```
 
 
@@ -455,6 +585,7 @@ load("GDPPC_ODAPC_GROW_GOV.RData")
 load("POV_ODAPC_GDPPC_GOV_ODAPC2.RData")
 load("HID_ODAPCGOVGOOD_GDPPC_GOV_GROW.RData")
 load("HID_ODAPCPOLGOOD_GDPPC_GOV_GROW.RData")
+load("GDPPC_ODAPCGOVGOOD_GOV.RData")
 load("POV_ODAPCGOOD_GDPPC_GOV_GROW.RData")
 ```
 
