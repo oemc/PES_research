@@ -251,6 +251,22 @@ datos_paper <- datos_paper %>% arrange(iso2c, year) %>%
 datos_paper <- datos_paper %>% mutate(GOV_GOOD = case_when(GOV >= 0 ~ 1, TRUE ~ 0))
 plot_ly(data = datos_paper %>% filter(!is.na(GOV)), y = ~ GOV, type = 'scatter', mode = 'markers') %>%
   layout(title = 'Indice promedio de gobernanza', xaxis = list(title = 'Registros'))
+
+datos_paper <- datos_paper %>% mutate(POL.CIV.LIB_GOOD = case_when(POL.CIV.LIB >= 0.5 ~ 1, TRUE ~ 0))
+plot_ly(data = datos_paper %>% filter(!is.na(POL.CIV.LIB)), y = ~ POL.CIV.LIB, type = 'scatter', mode = 'markers') %>%
+  layout(title = 'Indice libertades politicas y civiles', xaxis = list(title = 'Registros'))
+```
+
+#### Variables logaritmo
+```{r}
+datos_paper <- datos_paper %>% mutate(DT.ODA.ALLD.CD_LOG = log(DT.ODA.ALLD.CD))
+```
+
+#### Variables cuadradas
+```{r}
+datos_paper <- datos_paper %>% mutate(DT.ODA.ODAT.PC.ZS_2 = DT.ODA.ODAT.PC.ZS ^ 2,
+                                      DT.ODA.ALLD.CD_2 = DT.ODA.ALLD.CD ^ 2,
+                                      DT.ODA.ALLD.CD_LOG_2 = DT.ODA.ALLD.CD_LOG ^ 2,)
 ```
 
 
@@ -295,11 +311,13 @@ vis_dat(datos_paper %>% arrange(iso2c) %>% select(SP.POP.GROW))
   # ZW no tiene datos de crecimiento poblacional
 ```
 
-##### POV
+##### POV 
 
 ```{r}
-vis_dat(datos_paper %>% arrange(iso2c) %>% select(POV)) 
-# Hay muchos paises sin datos
+vis_dat(datos_paper %>% arrange(year, iso2c) %>% select(POV))
+
+# 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS' no tienen datos de esta variable
+# Porcentaje de personas por debajo de la linea de extrema pobreza (Dollar a day)
 ```
 
 ##### POLITICAL CIVIL LIBERTY
@@ -317,26 +335,44 @@ vis_dat(datos_paper %>% arrange(iso2c) %>% select(POL.CIV.LIB))
 # variables de etiqueta
 ve <- c('iso2c', 'year')
 # variables depndientes
-vd <- c('hdi')                # 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff'
+vd <- c('hdi')                
+               # 'hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff', 'POV', 'POV_diff',
+
 # variables independientes
-vi <- c('DT.ODA.ODAT.PC.ZS')  # 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff'
+vi <- c('DT.ODA.ODAT.PC.ZS') 
+               # 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff',       
+               # 'DT.ODA.ALLD.CD:LOG'
+
 # variables de control
-vc <- c('NY.GDP.PCAP.CD', 'SP.POP.GROW', 'GOV') # 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV_diff', 'POV', 'POV_diff', 'POL.CIV.LIB'
+vc <- c('NY.GDP.PCAP.CD',
+        'GOV',
+        'SP.POP.GROW',
+        'DT.ODA.ODAT.PC.ZS_2') 
+               #  'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV', 'GOV_diff'
+               #  'NY.GDP.PCAP.CD', 'POL.CIV.LIB', 'DT.ODA.ODAT.PC.ZS_2', 'DT.ODA.ALLD.CD_2', 'DT.ODA.ALLD.CD_LOG_2'
+
 # variables interactivas
-vint <- c() # 'GOV_GOOD'
+vint <- c('GOV_GOOD')    # 'GOV_GOOD', 'POL.CIV.LIB_GOOD'
 
 # paises sin datos
 delete_c <- c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB', 'SY')
           #, 'KI',	'MR',	'SD',	'WS' Si se usa POL.CIV.LIB
+          #, 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS' Si se usa POV
+          #, 'LK', 'PH' Si se usa DT.ODA.ALLD.CD_LOG
+
 # años sin datos
 first_y <- 2002
-last_y <- 2022
+last_y <- 2022 # 2018 si se usa POV
 
+f <- paste(vd, '~', case_when(length(vint) > 0 ~ paste(vi, vint, sep = '*'), TRUE ~ vi), '+', paste(vc, collapse = ' + '))
+
+```
+
+### Aplicar Filtros
+```{r}
 datos_model <- datos_paper %>% 
   filter(!iso2c %in% delete_c, !year <  first_y, !year > last_y) %>%
   select(all_of(c(ve, vd, vi, vc, vint)))
-
-f <- paste(vd, '~', case_when(length(vint) > 0 ~ paste(vi, vint, sep = '*'), TRUE ~ vi), '+', paste(vc, collapse = ' + '))
 
 datos_model
 vis_dat(datos_model)
@@ -364,21 +400,29 @@ for (vd_ in vd) {
 subplot(my_plot, nrows = 2, margin = 0.05)  %>% layout(title = vd)
 
 ```
+
+### Correr modelos
+```{r}
+model_ols <- lm(f, data=datos_model)
+model_fe <- plm(f, data=datos_model, index = ve, model = "within")
+model_re <- plm(f, data=datos_model, index = ve, model = "random")
+```
+
+
 ### Modelo OLS
 
 ```{r}
 print(f)
-model_ols <- lm(f, data=datos_model)
 summary(model_ols)
 residualPlots(model_ols)
 plot(model_ols)
+vif(model_ols)
 ```
 
 ### Modelo Fixed Effects
 
 ```{r}
 print(f)
-model_fe <- plm(f, data=datos_model, index = ve, model = "within")
 summary(model_fe)
 #summary(lm(paste(f, '+ iso2c'), data=datos_model))
 ```
@@ -387,7 +431,6 @@ summary(model_fe)
 
 ```{r}
 print(f)
-model_re <- plm(f, data=datos_model, index = ve, model = "random")
 summary(model_re)
 ```
 
@@ -397,3 +440,21 @@ summary(model_re)
 print(f)
 phtest(model_fe, model_re)
 ```
+
+# Guardar Data
+```{r}
+save(f, delete_c, first_y, last_y, my_plot, model_ols, model_fe, model_re, file = "HID_ODAPCGOVGOOD_GDPPC_GOV_GROW.RData")
+```
+
+
+# Cargar Data
+```{r}
+load("HDI_ODAPC_GDPPC_GROW_GOV_ODAPC2.RData")
+load("HDI_ODALOG_GDPPC_GROW_GOV.RData")
+load("GDPPC_ODAPC_GROW_GOV.RData")
+load("POV_ODAPC_GDPPC_GOV_ODAPC2.RData")
+load("HID_ODAPCGOVGOOD_GDPPC_GOV_GROW.RData")
+load("HID_ODAPCPOLGOOD_GDPPC_GOV_GROW.RData")
+load("POV_ODAPCGOOD_GDPPC_GOV_GROW.RData")
+```
+
