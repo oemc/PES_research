@@ -46,6 +46,7 @@ library(plm)       # modelos lineales para datos panel
 library(car)       # test y utilidades para modelos
 library(htmltools) # para imprimir graficos en html
 library(urca)      # Unit root test
+library(tseries)   # Dickey Fuller test (serie estacionaria)
 ```
 
 ### Obtener datos
