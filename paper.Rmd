@@ -411,17 +411,32 @@ plot_ly(temp %>% pivot_wider(names_from = Region, values_from = sum),
 ########################################################################
 
 temp <- datos_paper %>% 
-  mutate(y_range = case_when(year < 2007 ~ '2002 - 2006',
-                             year < 2012 ~ '2007 - 2011',
-                             year < 2017 ~ '2012 - 2016',
-                             TRUE ~ '2017 - 2022')) %>%
   filter(!year <  2002, !year > 2022, !iso2c %in% c('SS', 'KP')) %>%
   merge(my_countries) %>%
   merge(country_class)
 
-plot_ly(y = temp %>% filter(year == 2022, `Income group` == 'Lower middle income') %>% .$hdi, 
-        name = 'Ingresos Medios-bajos', type = "box") %>%
-  add_trace(y = temp %>% filter(year == 2022, `Income group` == 'Low income') %>% .$hdi, name = 'Ingresos Bajos')
+suppressWarnings(
+  plot_ly(temp %>% filter(year %in% c(2002, 2012, 2022)), x = ~year, y = ~hdi, color = ~`Income group`, type = "box") %>%
+    layout(title = 'Indice de desarrollo Humano en paises de Ingresos Bajos e Ingresos Medios-bajos', 
+           boxmode = "group")
+)
+
+suppressWarnings(
+  plot_ly(temp %>% filter(year %in% c(2002, 2012, 2022)), x = ~year, y = ~hdi, color = ~Region, type = "box") %>%
+    layout(title = 'Indice de desarrollo Humano segun Region', boxmode = "group")
+)
+
+########################################################################
+
+suppressWarnings(
+  plot_ly(temp %>% filter(year %in% c(2002, 2012, 2022)), x = ~year, y = ~GOV, color = ~`Income group`, type = "box") %>%
+    layout(title = 'Indice de gobernanza en paises de Ingresos Bajos e Ingresos Medios-bajos', boxmode = "group")
+)
+
+suppressWarnings(
+  plot_ly(temp %>% filter(year %in% c(2002, 2012, 2022)), x = ~year, y = ~GOV, color = ~Region, type = "box") %>%
+    layout(title = 'Indice de gobernanza segun Region', boxmode = "group")
+)
 
 ```
 
