@@ -339,7 +339,7 @@ vis_dat(datos_paper %>% arrange(country) %>% select(POL.CIV.LIB))
 ```{r}
 temp <- datos_paper %>% 
    filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
-   merge(my_countries) %>%
+   merge(my_countries, by.x = "country", by.y = "iso2c") %>%
    merge(country_class) %>%
    group_by(`Income group`) %>%
    summarise('2002 - 2022' = sum(ODA.ALL))
@@ -361,7 +361,7 @@ temp <- datos_paper %>%
                              year < 2017 ~ '2012 - 2016',
                              TRUE ~ '2017 - 2022')) %>%
   filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
-  merge(my_countries) %>%
+  merge(my_countries, by.x = "country", by.y = "iso2c") %>%
   merge(country_class) %>%
   group_by(`Income group`, y_range) %>%
   summarise(sum=sum(ODA.ALL), .groups = "drop")
@@ -378,7 +378,7 @@ plot_ly(temp %>% pivot_wider(names_from = `Income group`, values_from = sum),
 
 temp <- datos_paper %>% 
   filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
-  merge(my_countries) %>%
+  merge(my_countries, by.x = "country", by.y = "iso2c") %>%
   merge(country_class) %>%
   group_by(Region) %>%
   summarise('2002 - 2022' = sum(ODA.ALL))
@@ -397,7 +397,7 @@ temp <- datos_paper %>%
                              year < 2017 ~ '2012 - 2016',
                              TRUE ~ '2017 - 2022')) %>%
   filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
-  merge(my_countries) %>%
+  merge(my_countries, by.x = "country", by.y = "iso2c") %>%
   merge(country_class) %>%
   group_by(Region, y_range) %>%
   summarise(sum=sum(ODA.ALL), .groups = "drop") 
@@ -419,7 +419,7 @@ plot_ly(temp %>% pivot_wider(names_from = Region, values_from = sum),
 
 temp <- datos_paper %>% 
   filter(!year <  2002, !year > 2022, !country %in% c('SS', 'KP')) %>%
-  merge(my_countries) %>%
+  merge(my_countries, by.x = "country", by.y = "iso2c") %>%
   merge(country_class)
 
 suppressWarnings(
@@ -474,7 +474,7 @@ vint <- c('GOV_GOOD')    # 'GOV_GOOD', 'POL.CIV.LIB_GOOD'
 
 # paises sin datos
 delete_c <- c('SS', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'SB', 'SY')
-          #, 'KI',	'MR',	'SD',	'WS' Si se usa POL.CIV.LIB
+          #,	'MR',	'SD',	'WS' Si se usa POL.CIV.LIB
           #, 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'TL', 'UZ', 'VN', 'WS', 'ZW' Si se usa POV
           #, 'LK', 'PH' Si se usa ODA.ALL_LOG
 
@@ -578,7 +578,7 @@ pbgtest(model_fe)
 ```
 ### Homoskedasticity
 ```{r}
-bptest(hdi ~ ODA.PC*GOV_GOOD + GDP.PC + GOV, data = datos_model, studentize = F)
+#bptest(hdi ~ ODA.PC*GOV_GOOD + GDP.PC + GOV, data = datos_model, studentize = F)
 print('alternative hypothesis: Heteroscedasticidad')
 ```
 
@@ -590,17 +590,25 @@ coeftest(model_fe, vcovHC(model_fe, type = "HC3"))
 ```
 
 
-# Guardar Data
+## Guardar Data
 ```{r}
-save(f, delete_c, first_y, last_y, my_plot, model_ols, model_fe, model_re, file = "hdi_ODA.PCGOV_GOOD_GOV_GDP.PC.RData")
+#save(f, delete_c, first_y, last_y, my_plot, model_ols, model_fe, model_re, file = "hdi_ODA.PCGOV_GOOD_GOV_GDP.PC_POL.CIV.LIB.RData")
 ```
 
 
-# Cargar Data
+## Cargar Data
 ```{r}
 #load("hdi_ODA.PCGOV_GOOD_GOV_GDP.PC_GROW.RData")
+#load("hdi_ODA.PCGOV_GOOD_GOV_GDP.PC_POL.CIV.LIB.RData")
 #load("hdi_ODA.PCGOV_GOOD_GOV_GDP.PC.RData")
 #load("GDP.PC_ODA.PCGOV_GOOD_GOV_GROW.RData")
 #load("POV_ODA.PCGOV_GOOD_GOV_GDP.PC_GROW.RData")
+load("GOV_ODA.PC_hdi_GDP.PC.RData")
+```
+
+
+```{r}
+write_xlsx(country_class %>% select(Code, Region, `Income group`) %>% filter(!is.na(Region), !is.na(`Income group`)) %>%
+  merge(WDI_data$country, by.x='Code', by.y ='iso3c') %>% select(Code, iso2c, country, Region, `Income group`), 'group income.xls')
 ```
 

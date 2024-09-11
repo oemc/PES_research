@@ -1,0 +1,54 @@
+---
+title: "ODA"
+author: "Oscar Morales"
+date: '2024-09-11'
+output: html_document
+---
+
+# Manual para Replicar {.tabset .tabset-fade}
+
+## Cargar Librerias
+```{r,  echo = TRUE, results = 'hide', warning=FALSE, message=FALSE}
+library(tidyverse) # manejo de dataframes
+library(reshape2)  # para tranfromar data de long a wide
+library(WDI)       # libreria para acceder a metadata de banco mundial
+library(readxl)    # leer archivos de excel
+library(readr)     # leer archivos csv
+library(visdat)    # visualizacion de datos como graficos
+library(plotly)    # graficos
+```
+
+## Cargar Datos {.tabset .tabset-fade}
+
+### Paises
+```{r}
+#country_class %>% select(Code, Region, `Income group`) %>% filter(!is.na(Region), !is.na(`Income group`)) %>%
+#  merge(WDI_data$country, by.x='Code', by.y ='iso3c') %>% select(Code, iso2c, country, Region, `Income group`)
+```
+
+### V-DEM
+```{r}
+v_dem_vars = c("Electoral democracy index", "Exclusion by Gender index")
+V_DEM <- read_excel("Data/VDEM-CORE.xlsx", sheet = "Data")
+V_DEM <- V_DEM %>% 
+  select(-3, -5, -6, -7, -8) %>% 
+  filter(Indicator %in% v_dem_vars) %>% 
+  rename(iso3c = `Economy ISO3`, country = `Economy Name`, indicator = Indicator) %>%
+  melt(id.vars = c("iso3c", "country", "indicator"), variable.name = "year") %>%
+  arrange(iso3c, indicator, year)
+```
+
+
+```{r, results='asis', echo=FALSE}
+a <- 0
+for (i in 1:10){
+  a <- a + 1
+  cat("## Tab number", a, "\n")
+  cat("\n")
+  cat("This is tab number", a, "\n")
+  cat("\n")
+  print("Hello world \n")
+  cat("\n")
+}
+```
+
