@@ -47,6 +47,7 @@ library(car)       # test y utilidades para modelos
 library(htmltools) # para imprimir graficos en html
 library(urca)      # Unit root test
 library(tseries)   # Dickey Fuller test (serie estacionaria)
+library(lmtest)    # Pruebas de modelos lineales
 ```
 
 ### Obtener datos
@@ -78,7 +79,6 @@ Hacer la respectiva asociacion de nombres iso3c e iso2c
 my_countries$iso2c <- WDI_data$country %>%
   filter(iso3c %in% my_countries$Code) %>%
   .$iso2c
-my_countries
 ```
 
 Datos del banco mundial (para ODA y los indices de gobernanza) y el Human Development Reports API son descargados desde scripts de Python. Son almacenados en archivos CSV y luego son cargados aqui:
@@ -89,7 +89,8 @@ Datos del banco mundial (para ODA y los indices de gobernanza) y el Human Develo
 datos_HDI <- read_csv("datos_python_HDI.csv", col_names = c('Code', 'iso2c', 'indicator', 'year', 'value'), 
                       col_types = list(col_character(), col_character(), col_character(), col_double(), col_double()))
 
-hdi_indicators <- datos_HDI %>% distinct(indicator) %>% .$indicator
+hdi_indicators <- c('hdi') #datos_HDI %>% distinct(indicator) %>% .$indicator
+datos_HDI <- datos_HDI %>% filter(indicator %in% hdi_indicators)
 ```
 
 ### cargar ODA, GDP, POP.GROW
@@ -97,74 +98,74 @@ hdi_indicators <- datos_HDI %>% distinct(indicator) %>% .$indicator
 ```{r}
 oda_indicators <- c(
 'DT_ODA_ALLD_CD',
-'DT_ODA_ALLD_KD',
-'DT_ODA_OATL_CD',
-'DT_ODA_OATL_KD',
-'DT_ODA_ODAT_CD',
-'DT_ODA_ODAT_GI_ZS',
-'DT_ODA_ODAT_GN_ZS',
-'DT_ODA_ODAT_KD',
-'DT_ODA_ODAT_MP_ZS',
-'DT_ODA_ODAT_PC_ZS',
-'DT_ODA_ODAT_XP_ZS'
+#'DT_ODA_ALLD_KD',
+#'DT_ODA_OATL_CD',
+#'DT_ODA_OATL_KD',
+#'DT_ODA_ODAT_CD',
+#'DT_ODA_ODAT_GI_ZS',
+#'DT_ODA_ODAT_GN_ZS',
+#'DT_ODA_ODAT_KD',
+#'DT_ODA_ODAT_MP_ZS',
+'DT_ODA_ODAT_PC_ZS'#,
+#'DT_ODA_ODAT_XP_ZS'
 )
 gob_indicators <- c(
 'CC_EST',
-'CC_NO_SRC',
-'CC_PER_RNK',
-'CC_PER_RNK_LOWER',
-'CC_PER_RNK_UPPER',
-'CC_STD_ERR',
+#'CC_NO_SRC',
+#'CC_PER_RNK',
+#'CC_PER_RNK_LOWER',
+#'CC_PER_RNK_UPPER',
+#'CC_STD_ERR',
 'GE_EST',
-'GE_NO_SRC',
-'GE_PER_RNK',
-'GE_PER_RNK_LOWER',
-'GE_PER_RNK_UPPER',
-'GE_STD_ERR',
+#'GE_NO_SRC',
+#'GE_PER_RNK',
+#'GE_PER_RNK_LOWER',
+#'GE_PER_RNK_UPPER',
+#'GE_STD_ERR',
 'PV_EST',
-'PV_NO_SRC',
-'PV_PER_RNK',
-'PV_PER_RNK_LOWER',
-'PV_PER_RNK_UPPER',
-'PV_STD_ERR',
+# 'PV_NO_SRC',
+# 'PV_PER_RNK',
+# 'PV_PER_RNK_LOWER',
+# 'PV_PER_RNK_UPPER',
+# 'PV_STD_ERR',
 'RQ_EST',
-'RQ_NO_SRC',
-'RQ_PER_RNK',
-'RQ_PER_RNK_LOWER',
-'RQ_PER_RNK_UPPER',
-'RQ_STD_ERR',
+# 'RQ_NO_SRC',
+# 'RQ_PER_RNK',
+# 'RQ_PER_RNK_LOWER',
+# 'RQ_PER_RNK_UPPER',
+# 'RQ_STD_ERR',
 'RL_EST',
-'RL_NO_SRC',
-'RL_PER_RNK',
-'RL_PER_RNK_LOWER',
-'RL_PER_RNK_UPPER',
-'RL_STD_ERR',
-'VA_EST',
-'VA_NO_SRC',
-'VA_PER_RNK',
-'VA_PER_RNK_LOWER',
-'VA_PER_RNK_UPPER',
-'VA_STD_ERR'
+# 'RL_NO_SRC',
+# 'RL_PER_RNK',
+# 'RL_PER_RNK_LOWER',
+# 'RL_PER_RNK_UPPER',
+# 'RL_STD_ERR',
+'VA_EST'#,
+# 'VA_NO_SRC',
+# 'VA_PER_RNK',
+# 'VA_PER_RNK_LOWER',
+# 'VA_PER_RNK_UPPER',
+# 'VA_STD_ERR'
 )
 gdp_indicators <- c(
-'NY_ADJ_NNTY_PC_CD',
-'NY_ADJ_NNTY_PC_KD',
-'NY_ADJ_NNTY_PC_KD_ZG',
-'NY_GDP_PCAP_CN',
-'NY_GDP_PCAP_KN',
+# 'NY_ADJ_NNTY_PC_CD',
+# 'NY_ADJ_NNTY_PC_KD',
+# 'NY_ADJ_NNTY_PC_KD_ZG',
+# 'NY_GDP_PCAP_CN',
+# 'NY_GDP_PCAP_KN',
 'NY_GDP_PCAP_CD',
-'NY_GDP_PCAP_KD',
-'NY_GDP_MKTP_KD_ZG',
-'NY_GDP_DEFL_ZS_AD',
-'NY_GDP_DEFL_ZS',
-'NY_GDP_MKTP_CD',
-'NY_GDP_MKTP_CN',
-'NY_GDP_MKTP_KN',
-'NY_GDP_MKTP_KD',
-'NY_GDP_PCAP_KD_ZG',
-'NY_GDP_PCAP_PP_KD',
-'NY_GDP_PCAP_PP_CD',
-'SL_GDP_PCAP_EM_KD',
+# 'NY_GDP_PCAP_KD',
+# 'NY_GDP_MKTP_KD_ZG',
+# 'NY_GDP_DEFL_ZS_AD',
+# 'NY_GDP_DEFL_ZS',
+# 'NY_GDP_MKTP_CD',
+# 'NY_GDP_MKTP_CN',
+# 'NY_GDP_MKTP_KN',
+# 'NY_GDP_MKTP_KD',
+# 'NY_GDP_PCAP_KD_ZG',
+# 'NY_GDP_PCAP_PP_KD',
+# 'NY_GDP_PCAP_PP_CD',
+# 'SL_GDP_PCAP_EM_KD',
 'SP_POP_GROW'
 )
 
@@ -271,13 +272,19 @@ datos_paper <- datos_paper %>% mutate(DT.ODA.ODAT.PC.ZS_2 = DT.ODA.ODAT.PC.ZS ^ 
                                       DT.ODA.ALLD.CD_LOG_2 = DT.ODA.ALLD.CD_LOG ^ 2,)
 ```
 
+#### Colocar nombres a variables
+```{r}
+names(datos_paper) <- c('country','year','ODA.ALL','ODA.PC','CC.EST','GE.EST','PV.EST','RQ.EST','RL.EST','VA.EST','GDP.PC','GROW','hdi','POV','POL.CIV.LIB','GOV','hdi_diff','GDP.PC_diff','ODA.ALL_diff','ODA.PC_diff','GOV_diff','POV_diff','GOV_GOOD','POL.CIV.LIB_GOOD','ODA.ALL_LOG','ODA.PC_2','ODA.ALL_2','ODA.ALL_LOG_2')
+```
+
+
 
 #### Visualizacion de Datos  {.tabset .tabset-fade}
 
 ##### ODA
 
 ```{r}
-vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators)))) 
+vis_dat(datos_paper %>% select(ODA.ALL, ODA.PC)) 
   # DT.ODA.OATL.CD and DT.ODA.OATL.KD faltan
   # DT.ODA.ODAT.GI.ZS, DT.ODA.ODAT.GN.ZS, DT.ODA.ODAT.MP.ZS and DT.ODA.ODAT.XP.ZS tienen faltas
   # Un par de ocurrencias pais-año que faltan datos
@@ -286,8 +293,8 @@ vis_dat(datos_paper %>% select(all_of(gsub("_", ".", oda_indicators))))
 ##### GDP
 
 ```{r}
-vis_dat(datos_paper %>% select(NY.GDP.PCAP.CN, NY.GDP.PCAP.CD)) 
-  # NY.GDP.PCAP.CN, NY.GDP.PCAP.CD, NY.GDP.MKTP.CD, NY.GDP.MKTP.CN son buenos candidatos para usar como variables, 
+vis_dat(datos_paper %>% select(GDP.PC)) 
+  # NY.GDP.PCAP.CN, GDP.PC, NY.GDP.MKTP.CD, NY.GDP.MKTP.CN son buenos candidatos para usar como variables, 
   # 'SY'falta PIB per Capita en 2022, 2023 sin datos algunos paises
 ```
 
@@ -301,7 +308,7 @@ vis_dat(datos_paper %>% arrange(year) %>% select(all_of(gsub("_", ".", gob_indic
 ##### HDI
 
 ```{r}
-vis_dat(datos_paper %>% select(all_of(hdi_indicators))) 
+vis_dat(datos_paper %>% arrange(year) %>% select(all_of(hdi_indicators))) 
   # abr, co2_prod, le, le_f, le_m, mmr son las pocas categorias sin datos faltantes
   # hdi faltante en multiples ocaciones
 ```
@@ -309,14 +316,13 @@ vis_dat(datos_paper %>% select(all_of(hdi_indicators)))
 ##### POP.GROW
 
 ```{r}
-vis_dat(datos_paper %>% arrange(iso2c) %>% select(SP.POP.GROW)) 
-  # ZW no tiene datos de crecimiento poblacional
+vis_dat(datos_paper %>% arrange(country) %>% select(GROW))
 ```
 
 ##### POV 
 
 ```{r}
-vis_dat(datos_paper %>% arrange(year, iso2c) %>% select(POV))
+vis_dat(datos_paper %>% arrange(year, country) %>% select(POV))
 
 # 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS' no tienen datos de esta variable
 # Porcentaje de personas por debajo de la linea de extrema pobreza (Dollar a day)
@@ -325,18 +331,18 @@ vis_dat(datos_paper %>% arrange(year, iso2c) %>% select(POV))
 ##### POLITICAL CIVIL LIBERTY
 
 ```{r}
-vis_dat(datos_paper %>% arrange(iso2c) %>% select(POL.CIV.LIB)) 
+vis_dat(datos_paper %>% arrange(country) %>% select(POL.CIV.LIB)) 
   # KI	MR	SD	WS  son paises sin datos para estos años
 ```
 
 ## Tablas informativas
 ```{r}
 temp <- datos_paper %>% 
-   filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+   filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
    merge(my_countries) %>%
    merge(country_class) %>%
    group_by(`Income group`) %>%
-   summarise('2002 - 2022' = sum(DT.ODA.ALLD.CD))
+   summarise('2002 - 2022' = sum(ODA.ALL))
 
 temp
 
@@ -354,11 +360,11 @@ temp <- datos_paper %>%
                              year < 2012 ~ '2007 - 2011',
                              year < 2017 ~ '2012 - 2016',
                              TRUE ~ '2017 - 2022')) %>%
-  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+  filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
   merge(my_countries) %>%
   merge(country_class) %>%
   group_by(`Income group`, y_range) %>%
-  summarise(sum=sum(DT.ODA.ALLD.CD), .groups = "drop")
+  summarise(sum=sum(ODA.ALL), .groups = "drop")
 
 temp %>% pivot_wider(names_from = y_range, values_from = sum)
 
@@ -371,11 +377,11 @@ plot_ly(temp %>% pivot_wider(names_from = `Income group`, values_from = sum),
 ########################################################################
 
 temp <- datos_paper %>% 
-  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+  filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
   merge(my_countries) %>%
   merge(country_class) %>%
   group_by(Region) %>%
-  summarise('2002 - 2022' = sum(DT.ODA.ALLD.CD))
+  summarise('2002 - 2022' = sum(ODA.ALL))
 
 temp
 
@@ -390,11 +396,11 @@ temp <- datos_paper %>%
                              year < 2012 ~ '2007 - 2011',
                              year < 2017 ~ '2012 - 2016',
                              TRUE ~ '2017 - 2022')) %>%
-  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS')) %>%
+  filter(!year <  2002, !year > 2022, !country %in% c('SS')) %>%
   merge(my_countries) %>%
   merge(country_class) %>%
   group_by(Region, y_range) %>%
-  summarise(sum=sum(DT.ODA.ALLD.CD), .groups = "drop") 
+  summarise(sum=sum(ODA.ALL), .groups = "drop") 
 
 temp %>%
   pivot_wider(names_from = y_range, values_from = sum)
@@ -412,7 +418,7 @@ plot_ly(temp %>% pivot_wider(names_from = Region, values_from = sum),
 ########################################################################
 
 temp <- datos_paper %>% 
-  filter(!year <  2002, !year > 2022, !iso2c %in% c('SS', 'KP')) %>%
+  filter(!year <  2002, !year > 2022, !country %in% c('SS', 'KP')) %>%
   merge(my_countries) %>%
   merge(country_class)
 
@@ -448,29 +454,29 @@ suppressWarnings(
 
 ```{r}
 # variables de etiqueta
-ve <- c('iso2c', 'year')
+ve <- c('country', 'year')
 # variables depndientes
-vd <- c('NY.GDP.PCAP.CD')                
-               # 'hdi', 'hdi_diff', 'NY.GDP.PCAP.CD', 'NY.GDP.PCAP.CD_diff', 'POV', 'POV_diff',
+vd <- c('hdi')                
+               # 'hdi', 'hdi_diff', 'GDP.PC', 'GDP.PC_diff', 'POV', 'POV_diff',
 
 # variables independientes
-vi <- c('DT.ODA.ODAT.PC.ZS') 
-               # 'DT.ODA.ODAT.PC.ZS', 'DT.ODA.ALLD.CD', 'DT.ODA.ALLD.CD_diff', 'DT.ODA.ODAT.PC.ZS_diff',       
-               # 'DT.ODA.ALLD.CD:LOG'
+vi <- c('ODA.PC') 
+               # 'ODA.PC', 'ODA.ALL', 'ODA.ALL_diff', 'ODA.PC_diff',       
+               # 'ODA.ALL_LOG'
 
 # variables de control
-vc <- c('GOV') 
-               #  'SP.POP.GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV', 'GOV_diff'
-               #  'NY.GDP.PCAP.CD', 'POL.CIV.LIB', 'DT.ODA.ODAT.PC.ZS_2', 'DT.ODA.ALLD.CD_2', 'DT.ODA.ALLD.CD_LOG_2'
+vc <- c('GOV', 'GDP.PC') 
+               #  'GROW', 'CC.EST', 'GE.EST', 'PV.EST', 'RQ.EST', 'RL.EST', 'VA.EST', 'GOV', 'GOV_diff'
+               #  'GDP.PC', 'POL.CIV.LIB', 'ODA.PC_2', 'ODA.ALL_2', 'ODA.ALL_LOG_2'
 
 # variables interactivas
 vint <- c('GOV_GOOD')    # 'GOV_GOOD', 'POL.CIV.LIB_GOOD'
 
 # paises sin datos
-delete_c <- c('SS', 'ZW', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'TL', 'CV', 'SB', 'SY')
+delete_c <- c('SS', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'SB', 'SY')
           #, 'KI',	'MR',	'SD',	'WS' Si se usa POL.CIV.LIB
-          #, 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'UZ', 'VN', 'WS' Si se usa POV
-          #, 'LK', 'PH' Si se usa DT.ODA.ALLD.CD_LOG
+          #, 'AF', 'CD', 'CI', 'DJ', 'KH', 'LR', 'MR', 'PG', 'ST', 'TJ', 'TL', 'UZ', 'VN', 'WS', 'ZW' Si se usa POV
+          #, 'LK', 'PH' Si se usa ODA.ALL_LOG
 
 # años sin datos
 first_y <- 2002
@@ -478,12 +484,8 @@ last_y <- 2022 # 2018 si se usa POV
 
 f <- paste(vd, '~', case_when(length(vint) > 0 ~ paste(vi, vint, sep = '*'), TRUE ~ vi), '+', paste(vc, collapse = ' + '))
 
-```
-
-### Aplicar Filtros
-```{r}
 datos_model <- datos_paper %>% 
-  filter(!iso2c %in% delete_c, !year <  first_y, !year > last_y) %>%
+  filter(!country %in% delete_c, !year <  first_y, !year > last_y) %>%
   select(all_of(c(ve, vd, vi, vc, vint)))
 
 datos_model
@@ -536,7 +538,7 @@ vif(model_ols)
 ```{r}
 print(f)
 summary(model_fe)
-#summary(lm(paste(f, '+ iso2c'), data=datos_model))
+#summary(lm(paste(f, '+ country'), data=datos_model))
 ```
 
 ### Modelo Random Effects
@@ -554,14 +556,14 @@ phtest(model_fe, model_re)
 ```
 ### Unit Root Test
 ```{r}
-df=ur.df(datos_model  %>% filter(iso2c == 'AO') %>% .[[vi]],type="none",lags=0)
+df=ur.df(datos_model  %>% filter(country == 'AO') %>% .[[vi]],type="none",lags=0)
 df
 print('La serie es estacionaria si el valor del estadistico de prueba excede estos valores al 99%, 95% y 90% respectivamente')
 qnorm(c(.01,.05,.1)/2)
 
 adf.test(datos_model[[vi]], k= 0)
 
-y <- data.frame(split(datos_model[[vi]], datos_model$iso2c)) # individuals in columns
+y <- data.frame(split(datos_model[[vi]], datos_model$country)) # individuals in columns
 
 purtest(y, pmax = 4, exo = "intercept", test = "madwu")
 ```
@@ -576,7 +578,8 @@ pbgtest(model_fe)
 ```
 ### Homoskedasticity
 ```{r}
-bptest(hdi ~ DT.ODA.ODAT.PC.ZS*GOV_GOOD + NY.GDP.PCAP.CD + GOV + SP.POP.GROW, data = datos_model, studentize = F)
+bptest(hdi ~ ODA.PC*GOV_GOOD + GDP.PC + GOV, data = datos_model, studentize = F)
+print('alternative hypothesis: Heteroscedasticidad')
 ```
 
 ### Controlling Heteroskedasticity
@@ -589,19 +592,15 @@ coeftest(model_fe, vcovHC(model_fe, type = "HC3"))
 
 # Guardar Data
 ```{r}
-save(f, delete_c, first_y, last_y, my_plot, model_ols, model_fe, model_re, file = "GDPPC_ODAPCGOVGOOD_GOV.RData")
+save(f, delete_c, first_y, last_y, my_plot, model_ols, model_fe, model_re, file = "hdi_ODA.PCGOV_GOOD_GOV_GDP.PC.RData")
 ```
 
 
 # Cargar Data
 ```{r}
-load("HDI_ODAPC_GDPPC_GROW_GOV_ODAPC2.RData")
-load("HDI_ODALOG_GDPPC_GROW_GOV.RData")
-load("GDPPC_ODAPC_GROW_GOV.RData")
-load("POV_ODAPC_GDPPC_GOV_ODAPC2.RData")
-load("HID_ODAPCGOVGOOD_GDPPC_GOV_GROW.RData")
-load("HID_ODAPCPOLGOOD_GDPPC_GOV_GROW.RData")
-load("GDPPC_ODAPCGOVGOOD_GOV.RData")
-load("POV_ODAPCGOOD_GDPPC_GOV_GROW.RData")
+#load("hdi_ODA.PCGOV_GOOD_GOV_GDP.PC_GROW.RData")
+#load("hdi_ODA.PCGOV_GOOD_GOV_GDP.PC.RData")
+#load("GDP.PC_ODA.PCGOV_GOOD_GOV_GROW.RData")
+#load("POV_ODA.PCGOV_GOOD_GOV_GDP.PC_GROW.RData")
 ```
 
