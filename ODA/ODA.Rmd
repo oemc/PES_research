@@ -22,22 +22,116 @@ library(plotly)    # graficos
 
 ### Paises
 ```{r}
-#country_class %>% select(Code, Region, `Income group`) %>% filter(!is.na(Region), !is.na(`Income group`)) %>%
-#  merge(WDI_data$country, by.x='Code', by.y ='iso3c') %>% select(Code, iso2c, country, Region, `Income group`)
+country_class <- read_excel("Data/CLASS.xlsx", sheet = "List of economies")
+country_class <- country_class %>% 
+  filter(!is.na(Region), !is.na(`Income group`)) %>%
+  merge(WDI_data$country, by.x='Code', by.y ='iso3c') %>% 
+  select(Code, iso2c, country, Region, `Income group`) %>%
+  rename(iso3c = `Code`, region = Region, income = `Income group`)
 ```
 
 ### V-DEM
 ```{r}
-v_dem_vars = c("Electoral democracy index", "Exclusion by Gender index")
+v_dem_vars <- c("Electoral democracy index", "Exclusion by Gender index")
 V_DEM <- read_excel("Data/VDEM-CORE.xlsx", sheet = "Data")
-V_DEM <- V_DEM %>% 
+
+V_DEM <- V_DEM %>%
   select(-3, -5, -6, -7, -8) %>% 
   filter(Indicator %in% v_dem_vars) %>% 
   rename(iso3c = `Economy ISO3`, country = `Economy Name`, indicator = Indicator) %>%
   melt(id.vars = c("iso3c", "country", "indicator"), variable.name = "year") %>%
-  arrange(iso3c, indicator, year)
+  arrange(iso3c, indicator, year) %>%
+  merge(country_class) %>%
+  select(iso2c, indicator, year, value)
+
+V_DEM$indicator[V_DEM$indicator == "Electoral democracy index"] <- "dem"
+V_DEM$indicator[V_DEM$indicator == "Exclusion by Gender index"] <- "exc"
+v_dem_vars <- c("dem", "exc")
+
 ```
 
+### HDI
+```{r}
+hdi_vars <- c('hdi')
+HDI <- read_csv("Data/datos_python_HDI.csv", 
+                col_names = c('Code', 'iso2c', 'indicator', 'year', 'value'), 
+                col_types = list(col_character(), 
+                                 col_character(), 
+                                 col_character(), 
+                                 col_double(), 
+                                 col_double()),
+                na = 'None') %>% 
+  filter(indicator %in% hdi_vars) %>%
+  select(iso2c, indicator, year, value)
+```
+
+### WORLD BANK
+```{r, warning=FALSE}
+wb_vars <- c('ODA.GNI','ODA.ALL','ODA.PC','CC','GE','PV','RQ','RL','VA','GDP.PC','GDP.PPP','GROW','SAV')
+WB <- data.frame(indicator = character(), iso2c = character(), year = double(), value = double())
+
+
+for (indicator in wb_vars) {
+  WB <- rbind(WB, read_csv(paste("Data/datos_python_", indicator, ".csv", sep =''), 
+                           col_names = c('indicator', 'iso2c', 'year', 'value'),
+                           col_types = list(col_character(), col_character(), col_double(), col_double()),
+                           na = "None"))
+}
+
+WB <- WB %>% select(iso2c, indicator, year, value)
+```
+
+### CLIO-INFRA
+```{r}
+CLIO <- read_excel("Data/GlobalExtremePovertyDollaraDay_Compact.xlsx", sheet = "Data Long Format")
+
+names(CLIO) <- c("ccode", "country", "year", "value")
+
+CLIO[CLIO=="Cape Verde"] <- "Cabo Verde"
+CLIO[CLIO=="Congo"] <- "Congo, Rep."
+CLIO[CLIO=="Egypt"] <- "Egypt, Arab Rep."
+CLIO[CLIO=="Iran"] <- "Iran, Islamic Rep."
+CLIO[CLIO=="Kyrgyzstan"] <- "Kyrgyz Republic"
+CLIO[CLIO=="Laos"] <- "Lao PDR"
+CLIO[CLIO=="Macedonia"] <- "North Macedonia"
+CLIO[CLIO=="Russia"] <- "Russian Federation"
+CLIO[CLIO=="Slovakia"] <- "Slovak Republic"
+CLIO[CLIO=="South Korea"] <- "Korea, Rep."
+CLIO[CLIO=="Swaziland"] <- "Eswatini"
+CLIO[CLIO=="Syria"] <- "Syrian Arab Republic"
+CLIO[CLIO=="The Gambia"] <- "Gambia, The"
+CLIO[CLIO=="Turkey"] <- "Turkiye"
+CLIO[CLIO=="Venezuela"] <- "Venezuela, RB"
+CLIO[CLIO=="Yemen"] <- "Yemen, Rep."
+
+CLIO <- CLIO %>%
+  merge(WDI_data$country, all.x = TRUE) %>%
+  mutate(indicator = 'POV') %>%
+  select(indicator, iso2c, year, value) %>%
+  arrange(iso2c, year) %>%
+  select(iso2c, indicator, year, value)
+```
+
+### OUR WORLD IN DATA
+```{r, message=FALSE}
+LIBERTIES <- read_csv("DATA/political-civil-liberties-index.csv") %>%
+  filter(!is.na(Code)) %>%
+  mutate(indicator = 'LIB') %>%
+  merge(country_class, by.x = 'Code', by.y = 'iso3c') %>%
+  select(iso2c, indicator, year, value)
+```
+
+## Manipular Datos
+
+### Transformar datos a la estructura wide
+```{r}
+datos_paper <- rbind(WB, HDI, CLIO, LIBERTIES, V_DEM) %>%
+  pivot_wider(names_from = indicator, values_from = value) %>%
+  complete(iso2c, year)
+
+vis_dat(datos_paper %>% filter(year >= 1990, year <= 2022) %>% arrange(iso2c, year))
+
+```
 
 ```{r, results='asis', echo=FALSE}
 a <- 0
