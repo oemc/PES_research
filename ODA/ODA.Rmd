@@ -16,6 +16,11 @@ library(readxl)    # leer archivos de excel
 library(readr)     # leer archivos csv
 library(visdat)    # visualizacion de datos como graficos
 library(plotly)    # graficos
+library(plm)          # modelos lineales para datos panel
+library(parameters)   # impresion de modelos
+library(modelsummary) # impresion de modelos
+library(broom)
+library(knitr)
 ```
 
 ## Cargar Datos {.tabset .tabset-fade}
@@ -128,21 +133,118 @@ LIBERTIES <- read_csv("DATA/political-civil-liberties-index.csv") %>%
 datos_paper <- rbind(WB, HDI, CLIO, LIBERTIES, V_DEM) %>%
   pivot_wider(names_from = indicator, values_from = value) %>%
   complete(iso2c, year)
+```
 
-vis_dat(datos_paper %>% filter(year >= 1990, year <= 2022) %>% arrange(iso2c, year))
+### Filtros
+```{r, echo=FALSE}
+# CC GE PC RQ RL VA no hay datos anuales antes de 2002 y no hay datos 2023
+# fuera por no contar con muchos años en GOV
+gov_delete_c <- c('CW','FO','GI','GL','IM','MI','JG','MC','MF','MP','NC','PF','SM','SS','SX','TC','TW','VE','VG')
+# en dem y exc hay datos desde 1990
+dem_delete_c <- c('BA','BZ','DM','FM','GD','KI','KZ','LC','ME','MH','MK','PS','SS','TM','TO','TV','VC','WS','XK')
+exc_delete_c <- c('BA','BZ','DM','FM','GD','GN','KI','KZ','LC','ME','MH','MK','PS','SS','TM','TO','TV','VC','WS','XK')
+# en hdi hay datos desde 1990
+hdi_delete_c <- c('KP','XK','SO','MH','BT','SS','ER','GW','LB','TM','VU','PS','SR','ME','NG','GD','BA','CV','DM','ET','FM','GE','GQ','KI','KM','TD','TL','UZ','VC','AO','BF','LR','MG','SB','AZ','BY','DJ','MK','MV','RS','RW','WS')
+# lib ademas de los filtros pasados
+lib_delete_c <- c('YE')
+# GDP.PC y GDP.PPP ademas de los demas filtros
+gdp_delete_c <- c('AF','CD','CU','IR','MZ','SY')
+ppp_delete_c <- c('AF','CD','CU','IR','MZ','SY','IQ')
+# ODA.ALL
+oda_delete_c <- c('ZA','KG','MD','TJ','AM')
+opc_delete_c <- c('ZA','KG','MD','TJ','AM','LY','UA')
+# usando hdi, lib, dem y exc
+delete_c <- exc_delete_c %>% union(hdi_delete_c) %>% union(lib_delete_c) %>% union(ppp_delete_c) %>% union(opc_delete_c)
 
+recuperar_c <- datos_paper %>% filter(year >= 1993, year <=2022, iso2c %in% delete_c) %>% group_by(iso2c) %>% 
+  summarise(ODA.GNI_na = sum(is.na(ODA.GNI)),
+            ODA.ALL_na = sum(is.na(ODA.ALL)),
+            ODA.PC_na = sum(is.na(ODA.PC)),
+            GDP.PC_na = sum(is.na(GDP.PC)),
+            GDP.PPP_na = sum(is.na(GDP.PPP)),
+            GROW_na = sum(is.na(GROW)),
+            hdi_na = sum(is.na(hdi)),
+            LIB_na = sum(is.na(LIB)),
+            dem_na = sum(is.na(dem)),
+            exc_na = sum(is.na(exc))
+            ) %>%
+  mutate(sum_na = ODA.GNI_na + ODA.ALL_na + ODA.PC_na + GDP.PC_na + GDP.PPP_na + GROW_na + hdi_na + LIB_na + dem_na + exc_na) %>%
+  select(iso2c, sum_na) %>% arrange(sum_na) %>% filter(sum_na == 0) %>% .$iso2c
+
+filtro_c <- delete_c %>% setdiff(recuperar_c) %>% sort()
+
+first_y <- 1993
+last_y <- 2022
+
+country_class %>% filter(income != 'High income') %>% filter(!iso2c %in% filtro_c) %>% group_by(income) %>% summarise(countries = n())
+
+
+# 131 paises
+# 33 años
+# 4323 registros
+
+# 68 paises
+# 33 años
+# 2244 registros
+
+# 71 paises
+# 32 años
+# 2272 registros
+
+# 74 paises
+# 31 años
+# 2294 registros
+
+#----------IDEAL
+# 77 paises
+# 30 años
+# 2310 registros
+#----------
+
+# 78 paises
+# 29 años
+# 2262 registros
+
+vis_dat(country_class %>% filter(income != 'High income') %>%
+          merge(datos_paper) %>% select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, exc) %>% 
+          arrange(iso2c, year) %>%
+          filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c))
+
+cat("#### Filtro de países\n")
+filtro_c
+cat("#### Primer año\n")
+first_y
+cat("#### Ultimo año\n")
+last_y
+```
+
+## Modelos  {.tabset .tabset-fade}
+```{r}
+datos_model <- country_class %>% filter(income != 'High income') %>% merge(datos_paper) %>% 
+  select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, exc) %>% 
+  arrange(iso2c, year) %>% filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c)
+formulas <- c('hdi ~ ODA.GNI + GDP.PPP + GROW + LIB + dem + exc',
+              'hdi ~ ODA.GNI + GDP.PC + GROW + LIB + dem + exc'
+              )
 ```
 
 ```{r, results='asis', echo=FALSE}
-a <- 0
-for (i in 1:10){
-  a <- a + 1
-  cat("## Tab number", a, "\n")
-  cat("\n")
-  cat("This is tab number", a, "\n")
-  cat("\n")
-  print("Hello world \n")
-  cat("\n")
+for (f in formulas){
+  cat("### Modelo", f, "\n")
+  
+  cat("#### OLS\n")
+  model_ols <- lm(f, data=datos_model)
+  print(kable(tidy(model_ols)))
+  
+  cat("#### Fixed Effect\n")
+  model_fe <- plm(f, data=datos_model, index = c('iso2c', 'year'), model = "within")
+  print(kable(tidy(model_fe)))
+  
+  cat("#### Random Effect\n")
+  model_re <- plm(f, data=datos_model, index = c('iso2c', 'year'), model = "random")
+  print(kable(tidy(model_re)))
 }
 ```
+
+
 
