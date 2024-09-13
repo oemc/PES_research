@@ -142,11 +142,12 @@ datos_paper <- rbind(WB, HDI, CLIO, LIBERTIES, V_DEM) %>%
 datos_paper <- datos_paper %>% mutate(GOV = (CC + GE + PV + RQ + RL + VA) / 6)
 ```
 
+
 ### Definir variables Dicotomicas / clasificacion
 ```{r}
 datos_paper <- datos_paper %>% mutate(GOV_high = case_when(is.na(GOV) ~ NA_real_, GOV >= 0 ~ 1, TRUE ~ 0))
 
-dem_avg <- read_csv("Data/Electoral Democracy Index.csv")
+dem_avg <- read_csv("Data/Electoral Democracy Index.csv", show_col_types = FALSE)
 
 datos_paper <- datos_paper %>% merge(dem_avg %>% select(1, 2), by.x = 'year', by.y = 'Year', all.x = TRUE) %>%
                 mutate(dem_high = case_when(is.na(dem) ~ NA_real_, 
@@ -154,15 +155,17 @@ datos_paper <- datos_paper %>% merge(dem_avg %>% select(1, 2), by.x = 'year', by
                                             dem >= `*World` ~ 1, 
                                             TRUE ~ 0)) %>% select(-`*World`)
 
-exc_avg <- read_csv("Data/Exclusion by Gender.csv")
+exc_avg <- read_csv("Data/Exclusion by Gender.csv", show_col_types = FALSE)
 
 datos_paper <- datos_paper %>% merge(exc_avg %>% select(1, 2), by.x = 'year', by.y = 'Year', all.x = TRUE) %>%
                 mutate(exc_high = case_when(is.na(exc) ~ NA_real_, 
                                             is.na(`*World`) ~ NA_real_,
                                             exc >= `*World` ~ 1, 
-                                            TRUE ~ 0)) %>% select(-`*World`)
+                                            TRUE ~ 0)) %>% select(-`*World`) %>%
+                mutate(no_exc = 1 - exc, no_exc_high = 1 - exc_high, inv_exc = 1 / exc, inv_exc_high = 1 - exc_high)
+                
 
-lib_avg <- read_csv("DATA/political-civil-liberties-index.csv") %>% filter(Code == 'OWID_WRL')
+lib_avg <- read_csv("DATA/political-civil-liberties-index.csv", show_col_types = FALSE) %>% filter(Code == 'OWID_WRL')
 
 datos_paper <- datos_paper %>% merge(lib_avg %>% select(3, 4) %>% rename(WORLD = value), all.x = TRUE) %>%
                 mutate(lib_high = case_when(is.na(LIB) ~ NA_real_, 
@@ -264,7 +267,7 @@ last_y
 # 1993 - 2022
 datos_model <- country_class %>% filter(income != 'High income') %>% merge(datos_paper) %>%
   select(iso2c, year, region, income, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, 
-         GROW, hdi, LIB, lib_high, dem, dem_high, exc, exc_high) %>%
+         GROW, hdi, LIB, lib_high, dem, dem_high, exc, exc_high, no_exc, no_exc_high, inv_exc, inv_exc_high) %>%
   arrange(iso2c, year) %>% filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c)
 ```
 
@@ -292,10 +295,18 @@ formulas <- list(
   # list(name = 'modelo11', vd = 'GDP.PC', vi = c('ODA.PC', 'hdi' ,'GROW', 'dem', 'exc'), vint = c()),
   # list(name = 'modelo12', vd = 'GDP.PC', vi = c('hdi' ,'GROW', 'dem'), vint = c('ODA.PC*dem_high')),
   # list(name = 'modelo13', vd = 'GDP.PC', vi = c('hdi' ,'GROW', 'exc'), vint = c('ODA.PC*exc_high')),
-  # list(name = 'gdp modelo14', vd = 'GDP.PC', vi = c('ODA.PC' ,'hdi','GROW', 'dem'), vint = c(), vf = c('factor(region)', 'factor(income)')),
-  # list(name = 'gdp modelo15', vd = 'GDP.PC', vi = c('ODA.PC' ,'hdi','GROW', 'exc'), vint = c(), vf = c('factor(region)', 'factor(income)')),
-  #list(name = 'gdp modelo16', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'dem'), vint = c(), vf = c('factor(region)', 'factor(income)')),
-  list(name = 'gdp modelo17', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'exc'), vint = c(), vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo14', vd = 'GDP.PC', vi = c('ODA.PC' ,'hdi','GROW', 'dem'), vint = c(), 
+  #      vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo15', vd = 'GDP.PC', vi = c('ODA.PC' ,'hdi','GROW', 'exc'), vint = c(), 
+  #      vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo16', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'dem'), vint = c(), 
+  # vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo17', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'exc'), vint = c(), 
+  #      vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo17 no', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'no_exc'), vint = c(), 
+  #      vf = c('factor(region)', 'factor(income)')),
+  list(name = 'gdp modelo17 inv', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'inv_exc'), vint = c(), 
+       vf = c('factor(region)', 'factor(income)')),
   # list(name = 'gdp modelo18', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'LIB'), vint = c(), vf = c('factor(region)', 'factor(income)')),
   #list(name = 'hdi modelo14', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'dem'), vint = c(), vf = c('factor(region)', 'factor(income)')),
   #list(name = 'hdi modelo15', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'exc'), vint = c(), vf = c()),
@@ -303,7 +314,10 @@ formulas <- list(
   list(name = 'hdi modelo20', vd = 'hdi', vi = c('GDP.PC', 'exc'), vint = c('ODA.PC*exc_high'), vf = c()),
   #list(name = 'hdi modelo21', vd = 'hdi', vi = c('GDP.PC', 'dem'), vint = c('ODA.PC*dem_high'), vf = c()),
   #list(name = 'hdi modelo22', vd = 'hdi', vi = c('GDP.PC', 'exc'), vint = c('ODA.PC*exc_high'), vf = c('factor(region)', 'factor(income)'))
-  list(name = 'hdi modelo20', vd = 'GDP.PC', vi = c('GROW', 'exc'), vint = c('ODA.PC*exc_high'), vf = c())
+  list(name = 'gdp modelo23', vd = 'GDP.PC', vi = c('GROW', 'exc'), vint = c('ODA.PC*exc_high'), vf = c()),
+  # list(name = 'hdi modelo24 inv', vd = 'hdi', vi = c('GDP.PC', 'inv_exc'), vint = c('ODA.PC*inv_exc_high'), vf = c()),
+  # list(name = 'gdp modelo25 inv', vd = 'GDP.PC', vi = c('GROW', 'inv_exc'), vint = c('ODA.PC*inv_exc_high'), vf = c())
+  list(name = 'gdp modelo26', vd = 'GDP.PC', vi = c('hdi', 'exc'), vint = c('ODA.PC*exc_high'), vf = c())
   )
 ```
 

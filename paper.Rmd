@@ -445,6 +445,17 @@ suppressWarnings(
     layout(title = 'Indice de gobernanza segun Region', boxmode = "group")
 )
 
+########################################################################
+
+suppressWarnings(
+  plot_ly(temp %>% filter(year %in% c(2002, 2012, 2022)), x = ~year, y = ~GDP.PC, color = ~`Income group`, type = "box") %>%
+    layout(title = 'PIB per capita en paises de Ingresos Bajos e Ingresos Medios-bajos', boxmode = "group")
+)
+
+suppressWarnings(
+  plot_ly(temp %>% filter(year %in% c(2002, 2012, 2022)), x = ~year, y = ~GDP.PC, color = ~Region, type = "box") %>%
+    layout(title = 'PIB per capita segun Region', boxmode = "group")
+)
 ```
 
 
