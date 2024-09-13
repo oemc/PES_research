@@ -16,11 +16,10 @@ library(readxl)    # leer archivos de excel
 library(readr)     # leer archivos csv
 library(visdat)    # visualizacion de datos como graficos
 library(plotly)    # graficos
-library(plm)          # modelos lineales para datos panel
-library(parameters)   # impresion de modelos
-library(modelsummary) # impresion de modelos
-library(broom)
-library(knitr)
+library(plm)       # modelos lineales para datos panel
+library(lmtest)    # Pruebas de modelos lineales
+library(broom)     # Manejar tablas
+library(knitr)     # Imprimir tablas
 ```
 
 ## Cargar Datos {.tabset .tabset-fade}
@@ -135,6 +134,26 @@ datos_paper <- rbind(WB, HDI, CLIO, LIBERTIES, V_DEM) %>%
   complete(iso2c, year)
 ```
 
+### Definir variables Dicotomicas
+```{r}
+dem_avg <- read_csv("Data/Electoral Democracy Index.csv")
+
+datos_paper <- datos_paper %>% merge(dem_avg %>% select(1, 2), by.x = 'year', by.y = 'Year', all.x = TRUE) %>%
+                mutate(dem_high = case_when(is.na(dem) ~ NA_real_, 
+                                            is.na(`*World`) ~ NA_real_,
+                                            dem >= `*World` ~ 1, 
+                                            TRUE ~ 0)) %>% select(-21)
+
+exc_avg <- read_csv("Data/Exclusion by Gender.csv")
+
+datos_paper <- datos_paper %>% merge(exc_avg %>% select(1, 2), by.x = 'year', by.y = 'Year', all.x = TRUE) %>%
+                mutate(exc_high = case_when(is.na(exc) ~ NA_real_, 
+                                            is.na(`*World`) ~ NA_real_,
+                                            exc >= `*World` ~ 1, 
+                                            TRUE ~ 0)) %>% select(-22)
+```
+
+
 ### Filtros
 ```{r, echo=FALSE}
 # CC GE PC RQ RL VA no hay datos anuales antes de 2002 y no hay datos 2023
@@ -206,7 +225,7 @@ country_class %>% filter(income != 'High income') %>% filter(!iso2c %in% filtro_
 # 2262 registros
 
 vis_dat(country_class %>% filter(income != 'High income') %>%
-          merge(datos_paper) %>% select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, exc) %>% 
+          merge(datos_paper) %>% select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, dem_high, exc, exc_high) %>% 
           arrange(iso2c, year) %>%
           filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c))
 
@@ -221,30 +240,133 @@ last_y
 ## Modelos  {.tabset .tabset-fade}
 ```{r}
 datos_model <- country_class %>% filter(income != 'High income') %>% merge(datos_paper) %>% 
-  select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, exc) %>% 
+  select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, dem_high, exc, exc_high) %>% 
   arrange(iso2c, year) %>% filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c)
-formulas <- c('hdi ~ ODA.GNI + GDP.PPP + GROW + LIB + dem + exc',
-              'hdi ~ ODA.GNI + GDP.PC + GROW + LIB + dem + exc'
-              )
 ```
+
+```{r}
+formulas <- list(
+  list(name = 'modelo1', vd = 'hdi', vi = c('ODA.GNI','GDP.PPP','GROW','LIB','dem','exc'), vint = c()),
+  list(name = 'modelo2', vd = 'hdi', vi = c('ODA.GNI','GDP.PC' ,'GROW','LIB','dem','exc'), vint = c()),
+  list(name = 'modelo3', vd = 'hdi', vi = c('ODA.GNI','GDP.PC' ,'GROW','LIB','dem'),       vint = c()),
+  list(name = 'modelo4', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'dem', 'LIB'),     vint = c('ODA.GNI*dem_high')),
+  list(name = 'modelo4', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'dem'),     vint = c('ODA.GNI*dem_high'))
+  )
+```
+
 
 ```{r, results='asis', echo=FALSE}
 for (f in formulas){
-  cat("### Modelo", f, "\n")
+  form <- paste(f$vd, '~', paste(c(f$vint, f$vi), collapse = ' + '))
+  formula = as.formula(form)
   
-  cat("#### OLS\n")
-  model_ols <- lm(f, data=datos_model)
-  print(kable(tidy(model_ols)))
+  cat("### ", f$name, "\n")
   
-  cat("#### Fixed Effect\n")
-  model_fe <- plm(f, data=datos_model, index = c('iso2c', 'year'), model = "within")
-  print(kable(tidy(model_fe)))
+  cat("#### ", gsub("*", " x ", form, fixed = TRUE), " {.tabset .tabset-fade}\n")
   
-  cat("#### Random Effect\n")
-  model_re <- plm(f, data=datos_model, index = c('iso2c', 'year'), model = "random")
-  print(kable(tidy(model_re)))
+  cat("##### OLS\n")
+  model_ols <- plm(formula, data=datos_model, index = c('iso2c', 'year'), model = "pooling")
+  print(kable(tidy(model_ols) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  TRUE            ~ ''))))
+  
+    cat("###### Cross Sectional Dependance\n")
+    
+    cat("* Breusch-Pagan LM test\n")
+    print(kable(tidy(pcdtest(model_ols, test = c("lm")))))
+    
+    cat("* Pesaran CD test\n")
+    print(kable(tidy(pcdtest(model_ols, test = c("cd")))))
+    
+    cat("###### Serial Correlation\n")
+    print(kable(tidy(pbgtest(model_ols))))
+  
+  cat("##### Fixed Effects\n")
+  model_fe <- plm(formula, data=datos_model, index = c('iso2c', 'year'), model = "within")
+  print(kable(tidy(model_fe) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  TRUE            ~ ''))))
+  
+    cat("###### Cross Sectional Dependance\n")
+    
+    cat("* Breusch-Pagan LM test\n")
+    print(kable(tidy(pcdtest(model_fe, test = c("lm")))))
+    
+    cat("* Pesaran CD test\n")
+    print(kable(tidy(pcdtest(model_fe, test = c("cd")))))
+    
+    cat("###### Serial Correlation\n")
+    print(kable(tidy(pbgtest(model_fe))))
+  
+  cat("##### Random Effects\n")
+  model_re <- plm(formula, data=datos_model, index = c('iso2c', 'year'), model = "random")
+  print(kable(tidy(model_re) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  TRUE            ~ ''))))
+  
+    cat("###### Cross Sectional Dependance\n")
+    
+    cat("* Breusch-Pagan LM test\n")
+    print(kable(tidy(pcdtest(model_re, test = c("lm")))))
+    
+    cat("* Pesaran CD test\n")
+    print(kable(tidy(pcdtest(model_re, test = c("cd")))))
+    
+    cat("###### Serial Correlation\n")
+    print(kable(tidy(pbgtest(model_re))))
+  
+  cat("##### Time-Fixed Effects\n")
+  t_form <- paste(f$vd, '~ factor(year) +', paste(c(f$vint, f$vi), collapse = ' + '))
+  t_formula = as.formula(t_form)
+  model_ft <- plm(t_formula, data=datos_model, index = c('iso2c', 'year'), model = "within")
+  print(kable(tidy(model_ft) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  TRUE            ~ ''))))
+  
+    cat("###### Cross Sectional Dependance\n")
+    
+    cat("* Breusch-Pagan LM test\n")
+    print(kable(tidy(pcdtest(model_ft, test = c("lm")))))
+    
+    cat("* Pesaran CD test\n")
+    print(kable(tidy(pcdtest(model_ft, test = c("cd")))))
+    
+    cat("###### Serial Correlation\n")
+    print(kable(tidy(pbgtest(model_ft))))
+  
+  cat("#### Test for Fixed Effects\n")
+  print(kable(tidy(pFtest(model_fe, model_ols))))
+  
+  cat("#### Hausman Test\n")
+  print(kable(tidy(phtest(model_fe, model_re))))
+  
+  cat("#### Test for Time-Fixed Effects\n")
+  print(kable(tidy(pFtest(model_ft, model_fe))))
+  
+  cat("#### Breusch Pagan Test (heteroskedasticity)\n")
+  print(kable(tidy(bptest(formula, data = datos_model, studentize = F)) %>% 
+                mutate(alternative = 'heteroskedasticity')))
+  
+  cat("#### Unit Root Test {.tabset .tabset-fade}\n")
+  for (i in c(f$vd, f$vi)) {
+    cat("##### ", i, "\n")
+    y <- data.frame(split(datos_model[[i]], datos_model$iso2c)) # individuals in columns
+    print(kable(tidy(purtest(y, pmax = 4, exo = "intercept", test = "madwu")$statistic)))
+  }
+  
+  if (length(f$vint) == 1) {
+    i <- strsplit(f$vint, split = "*", fixed = T)[[1]][1]
+    cat("##### ", i, "\n")
+    y <- data.frame(split(datos_model[[i]], datos_model$iso2c)) # individuals in columns
+    print(kable(tidy(purtest(y, pmax = 4, exo = "intercept", test = "madwu")$statistic)))
+  }
 }
 ```
+
 
 
 
