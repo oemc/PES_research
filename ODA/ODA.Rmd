@@ -2,7 +2,9 @@
 title: "ODA"
 author: "Oscar Morales"
 date: '2024-09-11'
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 # Manual para Replicar {.tabset .tabset-fade}
@@ -20,6 +22,7 @@ library(plm)       # modelos lineales para datos panel
 library(lmtest)    # Pruebas de modelos lineales
 library(broom)     # Manejar tablas
 library(knitr)     # Imprimir tablas
+library(car)       # test y utilidades para modelos
 ```
 
 ## Cargar Datos {.tabset .tabset-fade}
@@ -134,15 +137,22 @@ datos_paper <- rbind(WB, HDI, CLIO, LIBERTIES, V_DEM) %>%
   complete(iso2c, year)
 ```
 
-### Definir variables Dicotomicas
+### Definir Indice de Governanza
 ```{r}
+datos_paper <- datos_paper %>% mutate(GOV = (CC + GE + PV + RQ + RL + VA) / 6)
+```
+
+### Definir variables Dicotomicas / clasificacion
+```{r}
+datos_paper <- datos_paper %>% mutate(GOV_high = case_when(is.na(GOV) ~ NA_real_, GOV >= 0 ~ 1, TRUE ~ 0))
+
 dem_avg <- read_csv("Data/Electoral Democracy Index.csv")
 
 datos_paper <- datos_paper %>% merge(dem_avg %>% select(1, 2), by.x = 'year', by.y = 'Year', all.x = TRUE) %>%
                 mutate(dem_high = case_when(is.na(dem) ~ NA_real_, 
                                             is.na(`*World`) ~ NA_real_,
                                             dem >= `*World` ~ 1, 
-                                            TRUE ~ 0)) %>% select(-21)
+                                            TRUE ~ 0)) %>% select(-`*World`)
 
 exc_avg <- read_csv("Data/Exclusion by Gender.csv")
 
@@ -150,7 +160,18 @@ datos_paper <- datos_paper %>% merge(exc_avg %>% select(1, 2), by.x = 'year', by
                 mutate(exc_high = case_when(is.na(exc) ~ NA_real_, 
                                             is.na(`*World`) ~ NA_real_,
                                             exc >= `*World` ~ 1, 
-                                            TRUE ~ 0)) %>% select(-22)
+                                            TRUE ~ 0)) %>% select(-`*World`)
+
+lib_avg <- read_csv("DATA/political-civil-liberties-index.csv") %>% filter(Code == 'OWID_WRL')
+
+datos_paper <- datos_paper %>% merge(lib_avg %>% select(3, 4) %>% rename(WORLD = value), all.x = TRUE) %>%
+                mutate(lib_high = case_when(is.na(LIB) ~ NA_real_, 
+                                            is.na(WORLD) ~ NA_real_,
+                                            LIB >= WORLD ~ 1, 
+                                            TRUE ~ 0)) %>% select(-WORLD)
+
+datos_paper <- datos_paper %>% merge(country_class %>% select(iso2c, region, income), all.x = TRUE) 
+
 ```
 
 
@@ -225,7 +246,8 @@ country_class %>% filter(income != 'High income') %>% filter(!iso2c %in% filtro_
 # 2262 registros
 
 vis_dat(country_class %>% filter(income != 'High income') %>%
-          merge(datos_paper) %>% select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, dem_high, exc, exc_high) %>% 
+          merge(datos_paper) %>% select(iso2c, year, region, income, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, 
+                                        GROW, hdi, LIB, lib_high, dem, dem_high, exc, exc_high) %>% 
           arrange(iso2c, year) %>%
           filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c))
 
@@ -239,25 +261,56 @@ last_y
 
 ## Modelos  {.tabset .tabset-fade}
 ```{r}
-datos_model <- country_class %>% filter(income != 'High income') %>% merge(datos_paper) %>% 
-  select(iso2c, year, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, GROW, hdi, LIB, dem, dem_high, exc, exc_high) %>% 
+# 1993 - 2022
+datos_model <- country_class %>% filter(income != 'High income') %>% merge(datos_paper) %>%
+  select(iso2c, year, region, income, ODA.GNI, ODA.ALL, ODA.PC, GDP.PC, GDP.PPP, 
+         GROW, hdi, LIB, lib_high, dem, dem_high, exc, exc_high) %>%
   arrange(iso2c, year) %>% filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c)
 ```
 
 ```{r}
+# 2002 - 2022
+# datos_model <- country_class %>% filter(!income %in% c('High income', 'Upper middle income')) %>% merge(datos_paper) %>% 
+#   select(iso2c, year, ODA.ALL, ODA.PC, GDP.PC, GROW, hdi, GOV, GOV_high) %>% 
+#   arrange(iso2c, year) %>% filter(year >= 2002, year <= last_y,
+#                                   !iso2c %in% c('SS', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'SB', 'SY'))
+```
+
+```{r}
 formulas <- list(
-  list(name = 'modelo1', vd = 'hdi', vi = c('ODA.GNI','GDP.PPP','GROW','LIB','dem','exc'), vint = c()),
-  list(name = 'modelo2', vd = 'hdi', vi = c('ODA.GNI','GDP.PC' ,'GROW','LIB','dem','exc'), vint = c()),
-  list(name = 'modelo3', vd = 'hdi', vi = c('ODA.GNI','GDP.PC' ,'GROW','LIB','dem'),       vint = c()),
-  list(name = 'modelo4', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'dem', 'LIB'),     vint = c('ODA.GNI*dem_high')),
-  list(name = 'modelo4', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'dem'),     vint = c('ODA.GNI*dem_high'))
+  # list(name = 'modelo1', vd = 'hdi', vi = c('ODA.GNI','GDP.PPP','GROW','LIB','dem','exc'), vint = c()),
+  # list(name = 'modelo2', vd = 'hdi', vi = c('ODA.GNI','GDP.PC' ,'GROW','LIB','dem','exc'), vint = c()),
+  # list(name = 'modelo3', vd = 'hdi', vi = c('ODA.GNI','GDP.PC' ,'GROW','LIB','dem'),       vint = c()),
+  # list(name = 'modelo4', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'dem', 'LIB'), vint = c('ODA.GNI*dem_high')),
+  # list(name = 'modelo5', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'dem'), vint = c('ODA.GNI*dem_high')),
+  # list(name = 'modelo6', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'exc'), vint = c('ODA.GNI*exc_high')),
+  # list(name = 'Original', vd = 'hdi', vi = c('GDP.PC' ,'GOV'), vint = c('ODA.PC*GOV_high')),
+  # list(name = 'modelo7', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'dem'), vint = c('ODA.PC*dem_high')),
+  # list(name = 'modelo8', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'exc'), vint = c('ODA.PC*exc_high')),
+  # list(name = 'modelo9', vd = 'hdi', vi = c('GDP.PC' ,'GROW', 'LIB'), vint = c('ODA.PC*lib_high')),
+  # list(name = 'modelo10', vd = 'GDP.PC', vi = c('ODA.PC', 'hdi' ,'GROW', 'LIB', 'dem', 'exc'), vint = c()),
+  # list(name = 'modelo11', vd = 'GDP.PC', vi = c('ODA.PC', 'hdi' ,'GROW', 'dem', 'exc'), vint = c()),
+  # list(name = 'modelo12', vd = 'GDP.PC', vi = c('hdi' ,'GROW', 'dem'), vint = c('ODA.PC*dem_high')),
+  # list(name = 'modelo13', vd = 'GDP.PC', vi = c('hdi' ,'GROW', 'exc'), vint = c('ODA.PC*exc_high')),
+  # list(name = 'gdp modelo14', vd = 'GDP.PC', vi = c('ODA.PC' ,'hdi','GROW', 'dem'), vint = c(), vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo15', vd = 'GDP.PC', vi = c('ODA.PC' ,'hdi','GROW', 'exc'), vint = c(), vf = c('factor(region)', 'factor(income)')),
+  #list(name = 'gdp modelo16', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'dem'), vint = c(), vf = c('factor(region)', 'factor(income)')),
+  list(name = 'gdp modelo17', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'exc'), vint = c(), vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo18', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'LIB'), vint = c(), vf = c('factor(region)', 'factor(income)')),
+  #list(name = 'hdi modelo14', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'dem'), vint = c(), vf = c('factor(region)', 'factor(income)')),
+  #list(name = 'hdi modelo15', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'exc'), vint = c(), vf = c()),
+  # list(name = 'hdi modelo19', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'LIB'), vint = c(), vf = c()),
+  list(name = 'hdi modelo20', vd = 'hdi', vi = c('GDP.PC', 'exc'), vint = c('ODA.PC*exc_high'), vf = c()),
+  #list(name = 'hdi modelo21', vd = 'hdi', vi = c('GDP.PC', 'dem'), vint = c('ODA.PC*dem_high'), vf = c()),
+  #list(name = 'hdi modelo22', vd = 'hdi', vi = c('GDP.PC', 'exc'), vint = c('ODA.PC*exc_high'), vf = c('factor(region)', 'factor(income)'))
+  list(name = 'hdi modelo20', vd = 'GDP.PC', vi = c('GROW', 'exc'), vint = c('ODA.PC*exc_high'), vf = c())
   )
 ```
 
 
 ```{r, results='asis', echo=FALSE}
 for (f in formulas){
-  form <- paste(f$vd, '~', paste(c(f$vint, f$vi), collapse = ' + '))
+  form <- paste(f$vd, '~', paste(c(f$vint, f$vi, f$vf), collapse = ' + '))
   formula = as.formula(form)
   
   cat("### ", f$name, "\n")
@@ -269,98 +322,138 @@ for (f in formulas){
   print(kable(tidy(model_ols) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
                                                   p.value < 0.01  ~ '**',
                                                   p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
                                                   TRUE            ~ ''))))
+    cat("* R-Squared: ",r.squared(model_ols)," \n")
   
-    cat("###### Cross Sectional Dependance\n")
-    
-    cat("* Breusch-Pagan LM test\n")
+    cat("* Breusch-Pagan LM test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_ols, test = c("lm")))))
     
-    cat("* Pesaran CD test\n")
+    cat("* Pesaran CD test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_ols, test = c("cd")))))
     
-    cat("###### Serial Correlation\n")
+    cat("* Serial Correlation\n")
     print(kable(tidy(pbgtest(model_ols))))
+    
+    cat("* Robust covariance matrix estimation \n")
+    print(kable(tidy(coeftest(model_ols, vcovHC(model_ols, method = 'white1'))) %>% 
+                  mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
+                                                  TRUE            ~ ''))))
   
   cat("##### Fixed Effects\n")
   model_fe <- plm(formula, data=datos_model, index = c('iso2c', 'year'), model = "within")
   print(kable(tidy(model_fe) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
                                                   p.value < 0.01  ~ '**',
                                                   p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
                                                   TRUE            ~ ''))))
   
-    cat("###### Cross Sectional Dependance\n")
-    
-    cat("* Breusch-Pagan LM test\n")
+    cat("* R-Squared: ",r.squared(model_fe)," \n")
+  
+    cat("* Breusch-Pagan LM test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_fe, test = c("lm")))))
     
-    cat("* Pesaran CD test\n")
+    cat("* Pesaran CD test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_fe, test = c("cd")))))
     
-    cat("###### Serial Correlation\n")
+    cat("* Serial Correlation\n")
     print(kable(tidy(pbgtest(model_fe))))
-  
+    
+    cat("* Robust covariance matrix estimation \n")
+    print(kable(tidy(coeftest(model_fe, vcovHC(model_fe, method = 'arellano'))) %>% 
+                  mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
+                                                  TRUE            ~ ''))))
+    
   cat("##### Random Effects\n")
   model_re <- plm(formula, data=datos_model, index = c('iso2c', 'year'), model = "random")
   print(kable(tidy(model_re) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
                                                   p.value < 0.01  ~ '**',
                                                   p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
                                                   TRUE            ~ ''))))
   
-    cat("###### Cross Sectional Dependance\n")
-    
-    cat("* Breusch-Pagan LM test\n")
+    cat("* R-Squared: ",r.squared(model_re)," \n")
+  
+    cat("* Breusch-Pagan LM test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_re, test = c("lm")))))
     
-    cat("* Pesaran CD test\n")
+    cat("* Pesaran CD test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_re, test = c("cd")))))
     
-    cat("###### Serial Correlation\n")
+    cat("* Serial Correlation\n")
     print(kable(tidy(pbgtest(model_re))))
   
+    cat("* Robust covariance matrix estimation \n")
+    print(kable(tidy(coeftest(model_re, vcovHC(model_re, method = 'white1'))) %>% 
+                  mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
+                                                  TRUE            ~ ''))))
+    
   cat("##### Time-Fixed Effects\n")
-  t_form <- paste(f$vd, '~ factor(year) +', paste(c(f$vint, f$vi), collapse = ' + '))
+  t_form <- paste(f$vd, '~ factor(year) +', paste(c(f$vint, f$vi, f$vf), collapse = ' + '))
   t_formula = as.formula(t_form)
   model_ft <- plm(t_formula, data=datos_model, index = c('iso2c', 'year'), model = "within")
   print(kable(tidy(model_ft) %>% mutate(significant = case_when(p.value < 0.001 ~ '***', 
                                                   p.value < 0.01  ~ '**',
                                                   p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
                                                   TRUE            ~ ''))))
   
-    cat("###### Cross Sectional Dependance\n")
-    
-    cat("* Breusch-Pagan LM test\n")
+    cat("* R-Squared: ",r.squared(model_ft)," \n")
+  
+    cat("* Breusch-Pagan LM test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_ft, test = c("lm")))))
     
-    cat("* Pesaran CD test\n")
+    cat("* Pesaran CD test - Cross Sectional Dependance \n")
     print(kable(tidy(pcdtest(model_ft, test = c("cd")))))
     
-    cat("###### Serial Correlation\n")
+    cat("* Serial Correlation\n")
     print(kable(tidy(pbgtest(model_ft))))
+    
+    cat("* Robust covariance matrix estimation \n")
+    print(kable(tidy(coeftest(model_ft, vcovHC(model_ft, method = 'arellano'))) %>% 
+                  mutate(significant = case_when(p.value < 0.001 ~ '***', 
+                                                  p.value < 0.01  ~ '**',
+                                                  p.value < 0.05  ~ '*',
+                                                  p.value < 0.1   ~ '.',
+                                                  TRUE            ~ ''))))
+    
+  cat("##### Tests \n")
   
-  cat("#### Test for Fixed Effects\n")
-  print(kable(tidy(pFtest(model_fe, model_ols))))
-  
-  cat("#### Hausman Test\n")
-  print(kable(tidy(phtest(model_fe, model_re))))
-  
-  cat("#### Test for Time-Fixed Effects\n")
-  print(kable(tidy(pFtest(model_ft, model_fe))))
-  
-  cat("#### Breusch Pagan Test (heteroskedasticity)\n")
+  cat("* Breusch Pagan Test (heteroskedasticity)\n")
   print(kable(tidy(bptest(formula, data = datos_model, studentize = F)) %>% 
                 mutate(alternative = 'heteroskedasticity')))
   
-  cat("#### Unit Root Test {.tabset .tabset-fade}\n")
+  cat("* Variance Inflation Factors - multicollinearity  \n")
+  print(kable(vif(model_ols)))
+    
+  cat("* Test for Fixed Effects\n")
+  print(kable(tidy(pFtest(model_fe, model_ols))))
+  
+  cat("* Hausman Test\n")
+  print(kable(tidy(phtest(model_fe, model_re))))
+  
+  cat("* Test for Time-Fixed Effects\n")
+  print(kable(tidy(pFtest(model_ft, model_fe))))
+  
+  cat("##### Unit Root Test\n")
   for (i in c(f$vd, f$vi)) {
-    cat("##### ", i, "\n")
+    cat("* ", i, "\n")
     y <- data.frame(split(datos_model[[i]], datos_model$iso2c)) # individuals in columns
     print(kable(tidy(purtest(y, pmax = 4, exo = "intercept", test = "madwu")$statistic)))
   }
   
   if (length(f$vint) == 1) {
     i <- strsplit(f$vint, split = "*", fixed = T)[[1]][1]
-    cat("##### ", i, "\n")
+    cat("* ", i, "\n")
     y <- data.frame(split(datos_model[[i]], datos_model$iso2c)) # individuals in columns
     print(kable(tidy(purtest(y, pmax = 4, exo = "intercept", test = "madwu")$statistic)))
   }
@@ -368,5 +461,19 @@ for (f in formulas){
 ```
 
 
+```{r}
+vif(model_ols)
+```
 
+
+```{r}
+coeftest(model_ols)
+coeftest(model_ols, vcovHC)
+coeftest(model_re, vcovHC(model_re, type = "HC1"))
+coeftest(model_re, vcovHC(model_re, method = 'white1'))
+
+coeftest(model_fe, vcovHC(model_re, method = "arellano"))
+
+
+```
 
