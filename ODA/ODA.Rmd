@@ -650,3 +650,63 @@ plot_ly(temp, x = ~year, y = ~exc, color = ~region, type = "box",
 
 
 ```
+
+```{r, echo=FALSE}
+# write_xlsx(datos_model %>% filter(year == 2022) %>% merge(country_class) %>% 
+#              select(iso2c, country, region, income) %>% 
+#              arrange(income, region, country), "listado_paises.xlsx")
+```
+
+```{r}
+fit <- lm(hdi ~ ODA.PC ,data = datos_model)
+plot_ly(x = datos_model$ODA.PC, y = datos_model$hdi, type = 'scatter', mode = 'markers') %>%
+  add_lines(x = datos_model$ODA.PC, fitted(fit)) %>% 
+  layout(title = 'Índice de desarrollo humano vs. ODA per cápita', showlegend = FALSE,
+         yaxis = list(title = 'HDI'), xaxis = list(title = 'ODA per cápita (Dolares actuales)'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", showarrow = F, xref='paper', yref='paper'))
+```
+
+```{r}
+fit <- lm(hdi ~ GDP.PC ,data = datos_model)
+plot_ly(x = datos_model$GDP.PC, y = datos_model$hdi, type = 'scatter', mode = 'markers') %>%
+  add_lines(x = datos_model$GDP.PC, fitted(fit)) %>% 
+  layout(title = 'Índice de desarrollo humano vs. PIB per cápita', showlegend = FALSE,
+         yaxis = list(title = 'HDI'), xaxis = list(title = 'PIB per cápita (Dolares actuales)'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", showarrow = F, xref='paper', yref='paper'))
+```
+
+```{r}
+fit <- lm(hdi ~ exc ,data = datos_model)
+plot_ly(x = datos_model$exc, y = datos_model$hdi, type = 'scatter', mode = 'markers') %>%
+  add_lines(x = datos_model$exc, fitted(fit)) %>% 
+  layout(title = 'Índice de desarrollo humano vs. Índice de exclusión por género', showlegend = FALSE,
+         yaxis = list(title = 'HDI'), xaxis = list(title = 'Índice de exclusión por género'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: Banco Mundial, V-Dem", showarrow = F, xref='paper', yref='paper'))
+```
+
+```{r}
+fit <- lm(GDP.PC ~ ODA.PC ,data = datos_model)
+plot_ly(x = datos_model$ODA.PC, y = datos_model$GDP.PC, type = 'scatter', mode = 'markers') %>%
+  add_lines(x = datos_model$ODA.PC, fitted(fit)) %>% 
+  layout(title = 'PIB per cápita vs. ODA per cápita', showlegend = FALSE,
+         yaxis = list(title = 'PIB per cápita (Dolares actuales)'), xaxis = list(title = 'ODA per cápita (Dolares actuales)'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", showarrow = F, xref='paper', yref='paper'))
+```
+
+```{r}
+fit <- lm(GDP.PC ~ GROW ,data = datos_model)
+plot_ly(x = datos_model$GROW, y = datos_model$GDP.PC, type = 'scatter', mode = 'markers') %>%
+  add_lines(x = datos_model$GROW, fitted(fit)) %>% 
+  layout(title = 'PIB per cápita vs. Crecimiento poblacional', showlegend = FALSE,
+         yaxis = list(title = 'PIB per cápita (Dolares actuales)'), xaxis = list(title = 'Crecimiento poblacional (en porcentaje)'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", showarrow = F, xref='paper', yref='paper'))
+```
+
+```{r}
+fit <- lm(GDP.PC ~ exc ,data = datos_model)
+plot_ly(x = datos_model$exc, y = datos_model$GDP.PC, type = 'scatter', mode = 'markers') %>%
+  add_lines(x = datos_model$exc, fitted(fit)) %>% 
+  layout(title = 'PIB per cápita vs. Índice de exclusión por género', showlegend = FALSE,
+         yaxis = list(title = 'PIB per cápita (Dolares actuales)'), xaxis = list(title = 'Índice de exclusión por género'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: Banco Mundial, V-Dem", showarrow = F, xref='paper', yref='paper'))
+```
