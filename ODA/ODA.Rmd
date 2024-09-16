@@ -137,7 +137,7 @@ datos_paper <- rbind(WB, HDI, CLIO, LIBERTIES, V_DEM) %>%
   complete(iso2c, year)
 ```
 
-### Definir Indice de Governanza
+### Definir Índice de Governanza
 ```{r}
 datos_paper <- datos_paper %>% mutate(GOV = (CC + GE + PV + RQ + RL + VA) / 6)
 ```
@@ -271,7 +271,7 @@ datos_model <- country_class %>% filter(income != 'High income') %>% merge(datos
   arrange(iso2c, year) %>% filter(year >= first_y, year <= last_y, !iso2c %in% filtro_c)
 ```
 
-```{r}
+```{r, echo = FALSE}
 # 2002 - 2022
 # datos_model <- country_class %>% filter(!income %in% c('High income', 'Upper middle income')) %>% merge(datos_paper) %>% 
 #   select(iso2c, year, ODA.ALL, ODA.PC, GDP.PC, GROW, hdi, GOV, GOV_high) %>% 
@@ -279,7 +279,7 @@ datos_model <- country_class %>% filter(income != 'High income') %>% merge(datos
 #                                   !iso2c %in% c('SS', 'BT', 'ER', 'GW', 'KP', 'LB', 'NG', 'PS', 'SO', 'VU', 'FM', 'KI', 'SB', 'SY'))
 ```
 
-```{r}
+```{r, echo = FALSE}
 formulas <- list(
   # list(name = 'modelo1', vd = 'hdi', vi = c('ODA.GNI','GDP.PPP','GROW','LIB','dem','exc'), vint = c()),
   # list(name = 'modelo2', vd = 'hdi', vi = c('ODA.GNI','GDP.PC' ,'GROW','LIB','dem','exc'), vint = c()),
@@ -305,19 +305,22 @@ formulas <- list(
   #      vf = c('factor(region)', 'factor(income)')),
   # list(name = 'gdp modelo17 no', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'no_exc'), vint = c(), 
   #      vf = c('factor(region)', 'factor(income)')),
-  list(name = 'gdp modelo17 inv', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'inv_exc'), vint = c(), 
-       vf = c('factor(region)', 'factor(income)')),
-  # list(name = 'gdp modelo18', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'LIB'), vint = c(), vf = c('factor(region)', 'factor(income)')),
-  #list(name = 'hdi modelo14', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'dem'), vint = c(), vf = c('factor(region)', 'factor(income)')),
-  #list(name = 'hdi modelo15', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'exc'), vint = c(), vf = c()),
+  # list(name = 'gdp modelo17 inv', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'inv_exc'), vint = c(), 
+  #      vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'gdp modelo18', vd = 'GDP.PC', vi = c('ODA.PC' ,'GROW', 'LIB'), vint = c(), 
+  #      vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'hdi modelo14', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'dem'), vint = c(), 
+  #      vf = c('factor(region)', 'factor(income)')),
+  # list(name = 'hdi modelo15', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'exc'), vint = c(), vf = c()),
   # list(name = 'hdi modelo19', vd = 'hdi', vi = c('ODA.PC', 'GDP.PC', 'LIB'), vint = c(), vf = c()),
-  list(name = 'hdi modelo20', vd = 'hdi', vi = c('GDP.PC', 'exc'), vint = c('ODA.PC*exc_high'), vf = c()),
-  #list(name = 'hdi modelo21', vd = 'hdi', vi = c('GDP.PC', 'dem'), vint = c('ODA.PC*dem_high'), vf = c()),
-  #list(name = 'hdi modelo22', vd = 'hdi', vi = c('GDP.PC', 'exc'), vint = c('ODA.PC*exc_high'), vf = c('factor(region)', 'factor(income)'))
-  list(name = 'gdp modelo23', vd = 'GDP.PC', vi = c('GROW', 'exc'), vint = c('ODA.PC*exc_high'), vf = c()),
+  list(name = 'Índice de desarrollo humano', vd = 'hdi', vi = c('GDP.PC','exc'), vint = c('ODA.PC*exc_high'), vf = c()),
+  # list(name = 'hdi modelo21', vd = 'hdi', vi = c('GDP.PC', 'dem'), vint = c('ODA.PC*dem_high'), vf = c()),
+  # list(name = 'hdi modelo22', vd = 'hdi', vi = c('GDP.PC', 'exc'), vint = c('ODA.PC*exc_high'), 
+  #      vf = c('factor(region)', 'factor(income)'))
+  list(name = 'PIB per cápita', vd = 'GDP.PC', vi = c('GROW', 'exc'), vint = c('ODA.PC*exc_high'), vf = c())
   # list(name = 'hdi modelo24 inv', vd = 'hdi', vi = c('GDP.PC', 'inv_exc'), vint = c('ODA.PC*inv_exc_high'), vf = c()),
   # list(name = 'gdp modelo25 inv', vd = 'GDP.PC', vi = c('GROW', 'inv_exc'), vint = c('ODA.PC*inv_exc_high'), vf = c())
-  list(name = 'gdp modelo26', vd = 'GDP.PC', vi = c('hdi', 'exc'), vint = c('ODA.PC*exc_high'), vf = c())
+  # list(name = 'gdp modelo26', vd = 'GDP.PC', vi = c('hdi', 'exc'), vint = c('ODA.PC*exc_high'), vf = c())
   )
 ```
 
@@ -474,20 +477,176 @@ for (f in formulas){
 }
 ```
 
+## Tablas y gráficas informativas
+```{r}
+datos_graficas <- datos_paper %>% 
+   filter(!year <  1993, !year > 2022, !is.na(income), income != 'High income') 
+
+datos_graficas[datos_graficas=="Low income"] = 'Ingresos Bajos'
+datos_graficas[datos_graficas=="Lower middle income"] = 'Ingresos Medios-bajos'
+datos_graficas[datos_graficas=="Upper middle income"] = 'Ingresos Medios-altos'
+
+datos_graficas[datos_graficas=='South Asia'] = 'Asia del Sur'
+datos_graficas[datos_graficas=='Europe & Central Asia'] = 'Europa y Asia Central'
+datos_graficas[datos_graficas=='Sub-Saharan Africa'] = 'África Subsahariana'
+datos_graficas[datos_graficas=='Latin America & Caribbean'] = 'América Latina y el Caribe'
+datos_graficas[datos_graficas=='East Asia & Pacific'] = 'Asia Oriental y el Pacífico'
+datos_graficas[datos_graficas=='Middle East & North Africa'] = 'Medio Oriente y África del Norte'
+
+
+
+datos_graficas$income <- ordered(datos_graficas$income, levels = c('Ingresos Bajos', 
+                                                                   'Ingresos Medios-bajos', 
+                                                                   'Ingresos Medios-altos'))
+
+datos_graficas$region <- ordered(datos_graficas$region, levels = c("África Subsahariana",
+                                                                   "Asia Oriental y el Pacífico",
+                                                                   "Medio Oriente y África del Norte",
+                                                                   "Asia del Sur",
+                                                                   "América Latina y el Caribe",
+                                                                   "Europa y Asia Central"))
+```
 
 ```{r}
-vif(model_ols)
+datos_model %>% filter(year == 2022) %>% group_by(region) %>% summarise(countries = n())
+
+WDI_data$country %>% group_by(region) %>% summarise(countries = n())
 ```
 
 
 ```{r}
-coeftest(model_ols)
-coeftest(model_ols, vcovHC)
-coeftest(model_re, vcovHC(model_re, type = "HC1"))
-coeftest(model_re, vcovHC(model_re, method = 'white1'))
+temp <- datos_graficas %>%
+   filter(!is.na(ODA.ALL)) %>%
+   group_by(income) %>%
+   summarise('1993 - 2022' = sum(ODA.ALL)) %>%
+   arrange(income)
 
-coeftest(model_fe, vcovHC(model_re, method = "arellano"))
+temp
+
+plot_ly(temp, labels = ~income, values = ~`1993 - 2022`, type = 'pie', textinfo = 'label+percent', sort = FALSE) %>%
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total 1993 - 2022',
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+
+temp <- datos_graficas %>%
+   filter(!is.na(ODA.ALL)) %>%
+   group_by(region) %>%
+   summarise('1993 - 2022' = sum(ODA.ALL)) %>%
+   arrange(region)
+
+temp
+
+plot_ly(temp, labels = ~region, values = ~`1993 - 2022`, type = 'pie', textinfo = 'label+percent', sort = FALSE) %>%
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total 1993 - 2022',
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+```
+
+```{r}
+########################################################################
+temp <- datos_graficas %>%
+   filter(!is.na(ODA.ALL)) %>%
+   mutate(y_range = case_when(year < 1998 ~ '1993 - 2007',
+                              year < 2008 ~ '2008 - 2017',
+                              TRUE ~ '2018 - 2022')) %>%
+   group_by(income, y_range) %>%
+   summarise(sum=sum(ODA.ALL), .groups = "drop")
+
+temp %>% pivot_wider(names_from = y_range, values_from = sum)
+
+plot_ly(temp %>% pivot_wider(names_from = income, values_from = sum), 
+        x = ~y_range, y = ~`Ingresos Bajos`, name = 'Ingresos Bajos', type = 'bar') %>% 
+  add_trace(y = ~`Ingresos Medios-bajos`, name = 'Ingresos Medios-bajos') %>%
+  add_trace(y = ~`Ingresos Medios-altos`, name = 'Ingresos Medios-altos') %>%
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total',
+         yaxis = list(title = 'Dolares Actuales'), xaxis = list(title = 'Periodo'), barmode = 'group',
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+
+temp <- datos_graficas %>%
+   filter(!is.na(ODA.ALL)) %>%
+   mutate(y_range = case_when(year < 1998 ~ '1993 - 2007',
+                              year < 2008 ~ '2008 - 2017',
+                              TRUE ~ '2018 - 2022')) %>%
+   group_by(region, y_range) %>%
+   summarise(sum=sum(ODA.ALL), .groups = "drop")
+
+temp %>% pivot_wider(names_from = y_range, values_from = sum)
+
+plot_ly(temp %>% pivot_wider(names_from = region, values_from = sum), 
+        x = ~y_range, y = ~`África Subsahariana`, name = 'África Subsahariana', type = 'bar') %>% 
+  add_trace(y = ~`Asia Oriental y el Pacífico`, name = 'Asia Oriental y el Pacífico') %>%
+  add_trace(y = ~`Medio Oriente y África del Norte`, name = 'Medio Oriente y África del Norte') %>%
+  add_trace(y = ~`Asia del Sur`, name = 'Asia del Sur') %>%
+  add_trace(y = ~`América Latina y el Caribe`, name = 'América Latina y el Caribe') %>%
+  add_trace(y = ~`Europa y Asia Central`, name = 'Europa y Asia Central') %>%
+  layout(title = 'Asistencia Oficial para el Desarrollo recibida total',
+         yaxis = list(title = 'Dolares Actuales'), xaxis = list(title = 'Periodo'), barmode = 'group',
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+```
+
+```{r, warning=FALSE}
+temp <- datos_graficas %>%
+   filter(!is.na(ODA.ALL), year %in% c(2002, 2012, 2022)) %>% arrange(desc(income))
+
+temp$income <- ordered(temp$income, levels = c('Ingresos Medios-altos',
+                                               'Ingresos Medios-bajos',
+                                               'Ingresos Bajos'))
+temp$region <- ordered(temp$region, levels = c("Europa y Asia Central",
+                                               "América Latina y el Caribe",
+                                               "Asia del Sur",
+                                               "Medio Oriente y África del Norte",
+                                               "Asia Oriental y el Pacífico",
+                                               "África Subsahariana"))
+
+plot_ly(temp, x = ~year, y = ~hdi, color = ~income, type = "box",
+        colors = c("Ingresos Bajos"="#1f77b4", "Ingresos Medios-bajos"="#ff7f0e", "Ingresos Medios-altos"="#2ca02c")) %>%
+  layout(title = 'Distribución del Índice de desarrollo Humano', boxmode = "group",
+         yaxis = list(title = 'Índice de desarrollo humano'), xaxis = list(title = 'año'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+
+plot_ly(temp, x = ~year, y = ~hdi, color = ~region, type = "box",
+        colors = c('África Subsahariana'='#1f77b4', 'Asia Oriental y el Pacífico'='#ff7f0e', 
+                   'Medio Oriente y África del Norte'='#2ca02c', 'Asia del Sur'='#d62728', 
+                   'América Latina y el Caribe'='#9467bd', 'Europa y Asia Central'='#8c564b')) %>%
+  layout(title = 'Distribución del Índice de desarrollo Humano', boxmode = "group",
+         yaxis = list(title = 'Índice de desarrollo humano'), xaxis = list(title = 'año'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+
+plot_ly(temp, x = ~year, y = ~GDP.PC, color = ~income, type = "box",
+        colors = c("Ingresos Bajos"="#1f77b4", "Ingresos Medios-bajos"="#ff7f0e", "Ingresos Medios-altos"="#2ca02c")) %>%
+  layout(title = 'Distribución del PIB per cápita', boxmode = "group",
+         yaxis = list(title = 'Dolares actuales'), xaxis = list(title = 'año'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+
+plot_ly(temp, x = ~year, y = ~GDP.PC, color = ~region, type = "box",
+        colors = c('África Subsahariana'='#1f77b4', 'Asia Oriental y el Pacífico'='#ff7f0e', 
+                   'Medio Oriente y África del Norte'='#2ca02c', 'Asia del Sur'='#d62728', 
+                   'América Latina y el Caribe'='#9467bd', 'Europa y Asia Central'='#8c564b')) %>%
+  layout(title = 'Distribución del PIB per cápita', boxmode = "group",
+         yaxis = list(title = 'Dolares actuales'), xaxis = list(title = 'año'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+
+plot_ly(temp, x = ~year, y = ~exc, color = ~income, type = "box",
+        colors = c("Ingresos Bajos"="#1f77b4", "Ingresos Medios-bajos"="#ff7f0e", "Ingresos Medios-altos"="#2ca02c")) %>%
+  layout(title = 'Distribución del Índice de exclusion por género', boxmode = "group",
+         yaxis = list(title = 'Índice de exclusion por género'), xaxis = list(title = 'año'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
+
+plot_ly(temp, x = ~year, y = ~exc, color = ~region, type = "box",
+        colors = c('África Subsahariana'='#1f77b4', 'Asia Oriental y el Pacífico'='#ff7f0e', 
+                   'Medio Oriente y África del Norte'='#2ca02c', 'Asia del Sur'='#d62728', 
+                   'América Latina y el Caribe'='#9467bd', 'Europa y Asia Central'='#8c564b')) %>%
+  layout(title = 'Distribución del Índice de exclusion por género', boxmode = "group",
+         yaxis = list(title = 'Índice de exclusion por género'), xaxis = list(title = 'año'),
+         annotations = list(x = 0, y = -0.1, text = "Fuente: datos del Banco Mundial", 
+                            showarrow = F, xref='paper', yref='paper'))
 
 
 ```
-
