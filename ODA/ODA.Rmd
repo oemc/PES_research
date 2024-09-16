@@ -1,5 +1,5 @@
 ---
-title: "ODA"
+title: "El efecto de la Asistencia Oficial para el Desarrollo sobre el crecimiento económico y bienestar en países en desarrollo"
 author: "Oscar Morales"
 date: '2024-09-11'
 output:
@@ -478,7 +478,7 @@ for (f in formulas){
 ```
 
 ## Tablas y gráficas informativas
-```{r}
+```{r, echo=FALSE}
 datos_graficas <- datos_paper %>% 
    filter(!year <  1993, !year > 2022, !is.na(income), income != 'High income') 
 
@@ -507,14 +507,14 @@ datos_graficas$region <- ordered(datos_graficas$region, levels = c("África Subs
                                                                    "Europa y Asia Central"))
 ```
 
-```{r}
-datos_model %>% filter(year == 2022) %>% group_by(region) %>% summarise(countries = n())
-
-WDI_data$country %>% group_by(region) %>% summarise(countries = n())
+```{r, echo=FALSE}
+# datos_model %>% filter(year == 2022) %>% group_by(region) %>% summarise(countries = n())
+# 
+# WDI_data$country %>% group_by(region) %>% summarise(countries = n())
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 temp <- datos_graficas %>%
    filter(!is.na(ODA.ALL)) %>%
    group_by(income) %>%
@@ -542,7 +542,7 @@ plot_ly(temp, labels = ~region, values = ~`1993 - 2022`, type = 'pie', textinfo 
                             showarrow = F, xref='paper', yref='paper'))
 ```
 
-```{r}
+```{r, echo=FALSE}
 ########################################################################
 temp <- datos_graficas %>%
    filter(!is.na(ODA.ALL)) %>%
@@ -586,7 +586,7 @@ plot_ly(temp %>% pivot_wider(names_from = region, values_from = sum),
                             showarrow = F, xref='paper', yref='paper'))
 ```
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, echo=FALSE}
 temp <- datos_graficas %>%
    filter(!is.na(ODA.ALL), year %in% c(2002, 2012, 2022)) %>% arrange(desc(income))
 
